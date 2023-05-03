@@ -21,3 +21,6 @@ Ipv6 suggested
 struct for each student, int for the last question visited
 
 
+initially start without using any networking, make sure that the core application works first.
+
+leave the client side web app to last as it is the easiest with just a bit og html and css
