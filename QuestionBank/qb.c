@@ -44,7 +44,7 @@ int main()
     {
         perror("recv");
         exit(1);
-    }
+    }   
 
     printf("Data sent from the server: %s", buf);
 

@@ -45,8 +45,7 @@ int main()
     int clientSocket_fd;
     // accepting the client socket, creating 2 way connection between client and server:
     clientSocket_fd = accept(socket_fd, NULL, NULL); // these double NULLs need to go later!
-
-    send(socket_fd, buf, sizeof(buf), 0);
+    send(clientSocket_fd, buf, sizeof(buf), 0);
 
     close(socket_fd);
 }
