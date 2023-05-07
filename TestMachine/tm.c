@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -10,6 +12,15 @@
 #define HTTP_port 9002
 #define QB_port 30002
 #define MAXDATASIZE 256
+#define MAXUSERS    5
+
+typedef struct{
+    char username[10];
+    char password[10];
+    char cookie[20];
+} User;
+
+User user[MAXUSERS];
 
 // CLIENT SOCKET CONNECTION
 // Browser (client) <--> TM (server) <--> QB's (clients)
@@ -17,7 +28,7 @@
 // CLIENT workflow: socket() --> connect() --> send()
 // SERVER workflow: socket() --> bind() --> listen() --> accept() --> send()
 
-int main()
+void qbSocket()
 {
     char buf[MAXDATASIZE] = "You have reached the server";
 
@@ -48,4 +59,48 @@ int main()
     send(clientSocket_fd, buf, sizeof(buf), 0);
 
     close(socket_fd);
+
+}
+
+bool loginCheck(char name[], char password[])
+{
+    bool userFound = false;
+    // check the user name and password against all the user names and password
+    // currently stored in the users.txt file
+    FILE *fp;
+    fp = fopen("users.txt", "r");
+    // error checking
+    if (fp == NULL) {perror("users file");}
+    int i = 0;
+
+    while (fscanf(fp,"%s\n%s\n%s\n", user[i].username, user[i].password, user[i].cookie) != EOF)
+    {
+        if (strcmp(name, user[i].username) == 0 && strcmp(password,user[i].password) == 0) 
+        {
+            userFound = true;
+        }
+        else {
+            i++;
+        }
+
+        if (feof(fp) && userFound == false)
+        {
+            printf("No user with that name exists\n");
+        }
+    }
+    fclose(fp);
+    return userFound;
+} 
+
+int main()
+{
+    // 1. CHECK LOGIN DETAILS AGAINST USER INPUT
+    bool login = loginCheck("George", "Michael");
+    if (login == 1)
+    {
+        printf("user matches someone in the database, let them in!");
+    }
+    else{
+        printf("refuse access!!");
+    }
 }
