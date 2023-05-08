@@ -10,6 +10,9 @@
 
 int main(int argc, char *argv[]) {
 
+    // Call using ./TM_test -c to compile C
+    // Call using ./TM_test -p to compile python
+
     char* buf = (char*)calloc(20000, sizeof(char));
     int fd, fp, sz, fz, opt;
     char buffer;
