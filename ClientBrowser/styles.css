@@ -1,0 +1,158 @@
+/* General styles */
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #FFFFFF;
+  color: #0F0F0F;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #FFFFFF;
+  border: 2px solid #000000;
+  border-radius: 5px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  width: 100px;
+  height: auto;
+}
+
+p {
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-family: 'Courier New', Courier, monospace;
+  color: #00FF00;
+  font-size: 2.25em;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Form styles */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 5px;
+  background-color: #FFFFFF;
+  color: #0F0F0F;
+  border: 1px solid #00FF00;
+  outline: none;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+  border-color: #000000;
+}
+
+input[type="checkbox"] {
+  cursor: pointer;
+}
+
+input[type="checkbox"]:focus + label {
+  color: #00FF00;
+}
+
+button {
+  padding: 10px;
+  background-color: #ffffff;
+  color: #0F0F0F;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #33FF33;
+}
+
+/* Additional styles for the remember-forgot section */
+.remember-forgot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forgot-password {
+  text-decoration: underline;
+  color: #00FF00;
+  cursor: pointer;
+}
+
+.forgot-password:hover {
+  color: #33FF33;
+}
+
+/* Updated styles for the question page */
+input[type="radio"] {
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+input[type="radio"]:focus + label {
+  color: #00FF00;
+}
+
+.prev-question, .next-question {
+  display: inline-block;
+  padding: 10px;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #ffffff;
+  color: #0F0F0F;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.next-question:hover {
+  background-color: #33FF33;
+}
+
+.timer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-weight: bold;
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.error-link {
+  display: inline-block;
+  padding: 10px;
+  background-color: #ffffff;
+  color: #0F0F0F;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.error-link:hover {
+  background-color: #33FF33;
+}
