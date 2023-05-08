@@ -145,7 +145,7 @@ input[type="radio"]:focus + label {
 
 .error-link {
   display: inline-block;
-  padding: 10px;
+  padding: 15px;
   background-color: #ffffff;
   color: #0F0F0F;
   text-decoration: none;
@@ -155,4 +155,67 @@ input[type="radio"]:focus + label {
 
 .error-link:hover {
   background-color: #33FF33;
+}
+
+.question-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.question-box {
+  width: 60%;
+  padding: 0px;
+  border: 2px solid #0F0F0F;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #FFFFFF;
+}
+
+.question-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  text-decoration: none;
+  color: #0F0F0F;
+}
+
+.question-link.correct {
+  background-color: #00FF00;
+}
+
+.question-link:hover {
+  background-color: #33FF33;
+}
+
+.question-number, .question-type {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.question-status {
+  font-size: 1.5em;
+}
+
+.question-link.try {
+  border-color: #0F0F0F;
+  background-color: #A9A9A9;
+}
+
+.question-link.incorrect {
+  background-color: #ff0000;
+  border-color: #A9A9A9;
+}
+
+
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
 }
