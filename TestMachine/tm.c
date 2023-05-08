@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 
 #define HTTP_port 9002
-#define QB_port 30002
+#define QB_port 30003
 #define MAXDATASIZE 256
 #define MAXUSERS    5
 
@@ -39,7 +39,7 @@ void qbSocket()
     // same as client:
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(HTTP_port);
+    server_address.sin_port = htons(QB_port);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // bind the socket to our specified IP and port
@@ -57,8 +57,6 @@ void qbSocket()
     // accepting the client socket, creating 2 way connection between client and server:
     clientSocket_fd = accept(socket_fd, NULL, NULL); // these double NULLs need to go later!
     send(clientSocket_fd, buf, sizeof(buf), 0);
-
-    close(socket_fd);
 
 }
 
@@ -92,6 +90,51 @@ bool loginCheck(char name[], char password[])
     return userFound;
 } 
 
+void httpSocket()
+{
+    FILE *fp;
+    fp = fopen("index.html", "r");
+    // error checking
+    if (fp == NULL) {perror("html file");}
+
+    //response header: status code
+    char http_header[2048] = "HTTP/1.1 200 OK\r\n\n";
+    char line[128];
+    char html_data[2048] = {'\0'};
+    
+    while (fgets(line, sizeof(line), fp))
+    {
+        strcat(html_data, line);
+    };
+    strcat(http_header, html_data);
+    
+    // creating socket
+    int socket_fd;
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(HTTP_port);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    // bind the socket to our specified IP and port
+    int bindReturn = bind(socket_fd, (struct sockaddr*) &server_address, sizeof(server_address));
+    if (bindReturn == -1)
+    {
+        close(socket_fd);
+        perror("bind");
+    }
+    listen(socket_fd, 5);
+
+    int clientSocket_fd;
+    // keep responding and listening to requests:
+    while (1)
+    {
+        clientSocket_fd = accept(socket_fd, NULL, NULL);
+        send(clientSocket_fd, http_header, sizeof(http_header), 0);
+    }
+}
+
 int main()
 {
     // 1. CHECK LOGIN DETAILS AGAINST USER INPUT
@@ -103,4 +146,6 @@ int main()
     else{
         printf("refuse access!!");
     }
+
+    httpSocket();
 }
