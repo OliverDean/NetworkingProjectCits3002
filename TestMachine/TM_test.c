@@ -8,6 +8,8 @@
 
 #define OPTLIST "pc"
 
+//THIS IS A DEMO .C THIS IS NOT THE FINAL FILE
+
 int main(int argc, char *argv[]) {
 
     // Call using ./TM_test -c to compile C
@@ -77,7 +79,7 @@ int main(int argc, char *argv[]) {
             }
             else if (opt == 'p') {
                 printf("python selected\n");
-                system("python TM_python.py");
+                system("./TM_python.py");
             }
             else {
                 printf("incorrect input\n");

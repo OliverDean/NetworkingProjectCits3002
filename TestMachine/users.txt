@@ -1,2 +1,5 @@
 // User Database with each line representing another student with this structure: 'username' 'password' 'score'
-
+Joel password 4
+test test 10
+admin admin 5
+yes no 20
