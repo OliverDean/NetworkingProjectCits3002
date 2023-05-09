@@ -1,0 +1,123 @@
+mcq
+Who developed Python Programming Language?
+A. Wick van Rossum
+B. Rasmus Lerdorf
+C. Guido van Rossum
+D. Niene Stom
+C
+
+mcq
+Which type of Programming does Python support?
+A. object-oriented programming
+B. structured programming
+C. functional programming
+D. all of the mentioned
+D
+
+mcq
+Is Python case sensitive when dealing with identifiers?
+A. no
+B. yes
+C. machine dependent
+D. none of the mentioned
+B
+
+mcq
+Which of the following is the correct extension of the Python file?
+A. .python
+B. .pl
+C. .py
+D. .p
+C
+
+mcq
+Is Python code compiled or interpreted?
+A. Python code is both compiled and interpreted
+B. Python code is neither compiled nor interpreted
+C. Python code is only compiled
+D. Python code is only interpreted
+A
+
+mcq
+All keywords in Python are in _________
+A. Capitalized
+B. lower case
+C. UPPER CASE
+D. None of the mentioned
+D
+
+mcq
+Which of the following is used to define a block of code in Python language?
+A. Indentation
+B. Key
+C. Brackets
+D. All of the mentioned
+A
+
+mcq
+Which keyword is used for function in Python language?
+A. Function
+B. def
+C. Fun
+D. Define
+B
+
+mcq
+Which of the following character is used to give single-line comments in Python?
+A. //
+B. #
+C. !
+D. /*
+B
+
+mcq
+What does pip stand for python?
+A. Pip Installs Python
+B. Pip Installs Packages
+C. Preferred Installer Program
+D. All of the mentioned
+C
+
+mcq
+Which of the following is not a valid C variable name?
+A. int number;
+B. float rate;
+C. int variable_count;
+D. int $main;
+D
+
+mcq
+All keywords in C are in ____________
+A. LowerCase letters
+B. UpperCase letters
+C. CamelCase letters
+D. None of the mentioned
+A
+
+mcq
+Which of the following is true for variable names in C?
+A. They can contain alphanumeric characters as well as special characters
+B. It is not an error to declare a variable to be one of the keywords(like goto, static)
+C. Variable names cannot start with a digit
+D. Variable can be of any length
+C
+
+mcq
+Which is valid C expression?
+A. int my_num = 100,000;
+B. int my_num = 100000;
+C. int my num = 1000;
+D. int $my_num = 10000;
+B
+
+mcq
+Which of the following cannot be a variable name in C?
+A. volatile
+B. true
+C. friend
+D. export
+A
+
+programming challenge
+编写一个函数，该函数接受一个字符串并返回其反转版本.
+return s[::-1]
