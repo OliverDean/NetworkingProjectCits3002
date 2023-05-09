@@ -7,7 +7,6 @@
 #include <string.h>
 #include <ctype.h>
 
-//TM WILL BE HOSTING ON http://192.168.220.118/
 
 typedef struct curUser {
     char username[32];
