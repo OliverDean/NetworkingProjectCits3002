@@ -11,7 +11,12 @@
 typedef struct curUser {
     char username[32];
     char password[32];
-    int score; // Max of 30
+    int userID;
+    int QB[10]; // Each question is 0 or 1 (showing what QB from)
+    int questions; // Max of 10
+    int attempted[10]; // Each has a max of 3
+    int score[10]; // Max of 3
+    int total_score; // Max of 30
 }curUser;
 
 curUser user;
@@ -24,30 +29,28 @@ int login(char username[], char password[]) {
     ssize_t linelen;
     int counter = 0;
 
-    /*
-    int fd = open("users.txt", O_RDONLY); // Open users.txt in read only mode
-    if (fd == -1) {
-        printf("Error number %d\n", errno);
-        perror("Program");
-    }
-    */
-
     FILE *fp = fopen("users.txt", "r");
 
     while ((linelen = getline(&line, &linesize, fp)) != -1) {
+        char *temp;
         buf = strtok(line, " ");
+        if (!strcmp(buf, "//")) // If comment line
+            continue;
         if (!strcasecmp(buf, username)) { // If strings equal (ignoring case-sensitive for username)
-            strcpy(user.username, buf);
+            strcpy(&temp, buf);
             buf = strtok(NULL, " "); 
             if (!strcasecmp(buf, password)) {
                 strcpy(user.password, buf);
+                strcpy(user.username, &temp);
                 printf("Correct Credentials\n");
+            }
+            else {
+                printf("Incorrect Password\n");
             }
         }
         else
             continue;  
     }   
-    //printf("%s", password);
     return 0;
 }
 
