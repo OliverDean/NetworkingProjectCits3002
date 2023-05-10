@@ -6,7 +6,16 @@
 #include <getopt.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
 
+#define PORT "4125"
+#define BACKLOG 10
 
 typedef struct curUser {
     char username[32];
@@ -95,16 +104,114 @@ int login(char username[], char password[]) {
     return 2;
 }
 
+void handle_sigchld(int sig) {
+  int saved_errno = errno;
+  while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+  errno = saved_errno;
+}
+
 int main(int argc, char* argv[]) {
+
+    char *IP = "192.168.220.118";
+    //FTP port is 21
     char username[32];
     char password[32];
+    
+    /* You will need to add (
+     "__linux__",
+    "__x86_64__",
+    "_GNU_SOURCE" 
+    ) to c_cpp_properties.json (if using VSC on ubuntu)
+    */
 
-    printf("Please enter a username: ");
-    scanf("%s", username);
+   // RUN TM IN ONE CMD WINDOW, IN A SEPERATE WINDOW RUN 'TELNET (REMOTEHOSTNAME) 4125
 
-    printf("\nPlease enter your password: ");
-    scanf("%s", password);
- 
+    int sockfd, new_fd;
+    struct addrinfo hints, *servinfo, *p;
+    struct sockaddr_storage their_addr;
+    socklen_t sin_size;
+    struct sigaction sa;
+    int yes = 1;
+    char s[INET6_ADDRSTRLEN];
+    int rv;
+
+    memset(&hints, 0, sizeof(hints)); // Make the struct empty
+    hints.ai_family = AF_INET; // Use IPv4
+    hints.ai_socktype = SOCK_STREAM; // TCP Stream
+    hints.ai_flags = AI_PASSIVE; // Fill my IP for me
+
+    // Get my local host address info
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all address info and bind to the first one we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+
+        // Attempt to create a socket
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("server: socket");
+            continue;
+        }
+
+        // Allow the kernel to use the same address (gets rid of 'address in use' error)
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+                sizeof(int)) == -1) {
+            perror("setsockopt");
+            exit(1);
+        }
+
+        // Associate a port with the above socket
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("server: bind");
+            continue;
+        }
+        break;
+    }
+
+    freeaddrinfo(servinfo);
+
+    if (p == NULL) {
+        printf("Server failed to bind\n");
+        exit(1);
+    }
+
+    if (listen(sockfd, BACKLOG) == 1) {
+        perror("listen");
+        exit(1);
+    }
+
+    printf("waiting for connections...\n");
+
+    while(1) {
+        sin_size = sizeof their_addr;
+        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        if (new_fd == -1) {
+            perror("accept");
+            continue;
+        }
+
+        //getpeername(new_fd, (struct sockaddr*)&their_addr, sizeof(struct sockaddr));
+        //printf("server: got connection from %s\n", s);
+
+        if (!fork()) { // Child Process
+            close(sockfd);
+            if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
+                perror("send");
+            if (recv(new_fd, username, 32, 0) == -1)
+                perror("recv");
+            if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
+                perror("send");
+            if (recv(new_fd, password, 32, 0) == -1)
+                perror("recv");
+        }
+        close(new_fd);
+    }
+    
     int temp = login(username, password);
+
     return 0;
 }
