@@ -70,26 +70,30 @@ void loadUser(char* buf) {
 // Logs user in, Returns 0 on success, 1 on password failure and returns 2 on login failure
 int login(char username[], char password[]) {
 
+    char temp[32];
     char* line = NULL;
     char* buf;
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
+    char test[32] = "joel";
 
     FILE *fp = fopen("users.txt", "r");
+    printf("Opening users text file\n");
 
     while ((linelen = getline(&line, &linesize, fp)) != -1) {
-        char temp[32];
         buf = strtok(line, " ");
         if (!strcmp(buf, "//")) // If comment line
             continue;
         if (!strcasecmp(buf, username)) { // If strings equal (ignoring case-sensitive for username)
+            printf("Usernames match\n");
             strcpy(temp, buf);
             buf = strtok(NULL, " "); 
             if (!strcasecmp(buf, password)) {
                 strcpy(user.password, buf);
                 strcpy(user.username, temp);
                 loadUser(buf);
+                printf("Signed in!!!\n");
                 return 0;
             }
             else {
@@ -98,7 +102,7 @@ int login(char username[], char password[]) {
             }
         }
         else
-            continue;  
+            continue; 
     }
     fclose(fp);
     return 2;
@@ -114,8 +118,8 @@ int main(int argc, char* argv[]) {
 
     char *IP = "192.168.220.118";
     //FTP port is 21
-    char username[32];
-    char password[32];
+    char username[32] = {0};
+    char password[32] = {0};
     
     /* You will need to add (
      "__linux__",
@@ -186,7 +190,14 @@ int main(int argc, char* argv[]) {
 
     printf("waiting for connections...\n");
 
-    while(1) {
+    int thepipe[2];
+
+    if (pipe(thepipe) == -1) {
+        perror("pipe");
+        exit(1);
+    }
+
+    while(1) {  // main accept() loop
         sin_size = sizeof their_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
         if (new_fd == -1) {
@@ -194,23 +205,35 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        //getpeername(new_fd, (struct sockaddr*)&their_addr, sizeof(struct sockaddr));
-        //printf("server: got connection from %s\n", s);
-
-        if (!fork()) { // Child Process
-            close(sockfd);
+        if (fork() == 0) { // this is the child process
+            char buffer[32];
+            close(thepipe[0]); // Child never needs to
+            close(sockfd); // child doesn't need the listener
             if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
                 perror("send");
-            if (recv(new_fd, username, 32, 0) == -1)
+            if (recv(new_fd, buffer, sizeof(buffer), 0) == -1)
                 perror("recv");
+            write(thepipe[1], buffer, sizeof(buffer));
             if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
                 perror("send");
-            if (recv(new_fd, password, 32, 0) == -1)
+            if (recv(new_fd, password, sizeof(password), 0) == -1) 
                 perror("recv");
+            write(thepipe[1], password, sizeof(password));
+            close(thepipe[1]);
+            exit(1);
         }
-        close(new_fd);
+        close(thepipe[1]);
+        read(thepipe[0], username, sizeof(username));
+        read(thepipe[0], password, sizeof(password));
+        close(thepipe[0]);
+        username[strcspn(username, "\n")] = '\0';
+        username[strcspn(username, "\r")] = '\0';
+        password[strcspn(password, "\n")] = '\0';
+        password[strcspn(password, "\r")] = '\0';
+        close(new_fd);  // parent doesn't need this
+        break;
     }
-    
+
     int temp = login(username, password);
 
     return 0;
