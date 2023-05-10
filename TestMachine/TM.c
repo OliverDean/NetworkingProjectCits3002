@@ -190,37 +190,40 @@ int main(int argc, char* argv[]) {
 
     printf("waiting for connections...\n");
 
-    int thepipe[2];
-
-    if (pipe(thepipe) == -1) {
-        perror("pipe");
-        exit(1);
-    }
-
     while(1) {  // main accept() loop
         sin_size = sizeof their_addr;
+        int PID = 0;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
         if (new_fd == -1) {
             perror("accept");
             continue;
         }
 
-        if (fork() == 0) { // this is the child process
-            char buffer[32];
+        int thepipe[2];
+
+        if (pipe(thepipe) == -1) {
+            perror("pipe");
+            exit(1);
+        }
+
+        if (!fork()) { // this is the child process
+            //char buffer[32] = {0};
             close(thepipe[0]); // Child never needs to
             close(sockfd); // child doesn't need the listener
+            memset(username,0,sizeof(username));
+            memset(password,0,sizeof(password));
             if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
                 perror("send");
-            if (recv(new_fd, buffer, sizeof(buffer), 0) == -1)
+            if (recv(new_fd, username, sizeof(username), 0) == -1)
                 perror("recv");
-            write(thepipe[1], buffer, sizeof(buffer));
+            write(thepipe[1], username, sizeof(username));
             if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
                 perror("send");
             if (recv(new_fd, password, sizeof(password), 0) == -1) 
                 perror("recv");
             write(thepipe[1], password, sizeof(password));
             close(thepipe[1]);
-            exit(1);
+            exit(0);
         }
         close(thepipe[1]);
         read(thepipe[0], username, sizeof(username));
@@ -231,7 +234,9 @@ int main(int argc, char* argv[]) {
         password[strcspn(password, "\n")] = '\0';
         password[strcspn(password, "\r")] = '\0';
         close(new_fd);  // parent doesn't need this
-        break;
+        int temp = login(username, password);
+
+        //break;
     }
 
     int temp = login(username, password);
