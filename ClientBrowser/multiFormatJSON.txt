@@ -1,0 +1,17 @@
+{
+    "type": "mcq",
+    "text": "Who developed Python Programming Language?",
+    "options": [
+      "Wick van Rossum",
+      "Rasmus Lerdorf",
+      "Guido van Rossum",
+      "Niene Stom"
+    ],
+    "answer": 2
+  }
+
+  
+
+//the test machine cant know the answer, it needs to be held only on the QB but for simplicity it is here for now.
+//
+  
