@@ -102,7 +102,7 @@ int loadUser(char *filename)
 
     if (QBcounter == 10)
         return 0;
-    else if (10 > QBcounter > 0 )
+    else if (10 > QBcounter > 0)
         return -2;
     else if (QBcounter <= 0)
         return -1;
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
         if (new_fd == -1)
         {
             perror("accept");
-            continue;
+            break;
         }
         printf("Accepted connection!\n");
 
@@ -296,8 +296,8 @@ int main(int argc, char *argv[])
 
         if (!fork())
         { // this is the child process
-            // char buffer[32] = {0};
-            close(sockfd); // child doesn't need the listener
+            char *returnvalue;
+            //close(sockfd); // child doesn't need the listener
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
             if (recv(new_fd, bufferpy, sizeof(bufferpy), 0) == -1)
@@ -338,60 +338,44 @@ int main(int argc, char *argv[])
                 username[strcspn(username, "\r")] = '\0';
                 password[strcspn(password, "\n")] = '\0';
                 password[strcspn(password, "\r")] = '\0';
-                
+
                 int loginValue = login(username, password, &user.user_filename);
-                if (loginValue == -1)
+                if (loginValue == -1) // Inavlid Username (doesn't exist)
                 {
                     if (send(new_fd, "Username Invalid.\n", 19, 0) == -1)
                         perror("send");
-                    printf("Username:%s\nPassword:%s\n", user.username, user.password);
-                    write(thepipe[1], "IL", 2);
-                    close(thepipe[1]);
+                    returnvalue = "IL";
                     close(new_fd);
                     exit(0);
                 }
-                else if (loginValue == -2) {
-                    printf("Sending NF\n");
-                    write(thepipe[1], "NF", 2);
-                    write(thepipe[1], &user, sizeof(user));
-                    printf("Send NF and user\n");
+                else if (loginValue == -2) // File is broken
+                {
+                    returnvalue = "NF";
                     close(thepipe[1]);
-                    exit(0);
                 }
-                else if (loginValue == 1) {
+                else if (loginValue == 1) // Invalid Password
+                {
                     if (send(new_fd, "Incorrect Password.\n", 21, 0) == -1)
                         perror("send");
-                    write(thepipe[1], "IL", 2);
-                    close(thepipe[1]);
+                    returnvalue = "IL";
+                    close(new_fd);
                     exit(0);
                 }
                 printf("Opening user file..\n");
                 int loadvalue = loadUser(user.user_filename);
-                if (loadvalue == -1)
+                if (loadvalue == -1) // If file failed to open
                 {
-                    printf("Failure to open file %s\n", user.user_filename);
-                    char NF[2] = "NF";
-                    write(thepipe[1], NF, sizeof(NF));
-                    write(thepipe[1], &user, sizeof(user));
-                    close(thepipe[1]);
-                    exit(0);
+                    returnvalue = "NF";
                 }
-                else if (loadvalue == -2)
+                else if (loadvalue == -2) // If file is corrupted
                 {
-                    printf("Something is wrong with the file.\n");
-                    write(thepipe[1], "NF", 2);
-                    write(thepipe[1], &user, sizeof(user));
-                    close(thepipe[1]);
-                    exit(0);
+                    returnvalue = "NF";
                 }
-                if(loadvalue == 0 && loginValue == 0) {
-                    printf("Successful login.\n");
-                    write(thepipe[1], "YE", 2);
-                    close(thepipe[1]);
-                    exit(0);
+                if (loadvalue == 0 && loginValue == 0)
+                {
+                    returnvalue = "YE";
                 }
                 close(thepipe[1]);
-                exit(0);
             }
             else
             {
@@ -399,72 +383,69 @@ int main(int argc, char *argv[])
                 bufferflag = true;
                 exit(0);
             }
-        }
-        char reportvalue[2];
-        printf("Reading value...\n");
-        read(thepipe[0], reportvalue, sizeof(reportvalue));
-        printf("Read value\n");
-        reportvalue[2] = '\0';
-        if (!strcmp(reportvalue, "YE")) // Success
-        {
-            close(new_fd);
-            printf("Closing connection with client...\n");
-            continue;
-        }
-        else if(!strcmp(reportvalue, "IL")) // Incorrect Login
-        {
-            printf("Incorrect Login.");
-            close(new_fd);
-            continue;
-        }
-        else if (!strcmp(reportvalue, "NF")) // Bad / No File
-        {
-            printf("NF tag\n");
-            read(thepipe[0], &user, sizeof(user));
-            printf("Helping user: %s\n", user.username);
-            char *randomstring = randomStringGenerator();
-            user.user_filename = randomstring;
-            FILE *fp = fopen(randomstring, "w");
-            FILE *up = fopen("users.txt", "r+");
-            if (fp == NULL)
+
+            if (!strcmp(returnvalue, "YE")) // Success
             {
-                perror("fopen");
-                close(thepipe[1]);
-                exit(0);
-            } 
-            if (up == NULL)
-            {
-                perror("fopen");
-                close(thepipe[1]);
-                exit(0);
+                close(new_fd);
+                printf("Closing connection with client...\n");
+                continue;
             }
-            char *line = NULL;
-            char *buf;
-            size_t linesize = 0;
-            ssize_t linelen;
-            int counter = 0;
-            printf("Grabbing line...\n");
-            while ((linelen = getline(&line, &linesize, up)) != -1)
+            else if (!strcmp(returnvalue, "IL")) // Incorrect Login
             {
-                printf("Current line is: %s\n", line);
-                counter += (int)linelen;
-                buf = strtok(line, ";");
-                if (!strcmp(buf, "//")) // If comment line
-                    continue;
-                else if(!strcasecmp(buf, user.username)) { // Line we want
-                    buf = strtok(NULL, ";");
-                    buf = strtok(NULL, ";");
-                    if (buf != NULL) { // If user has filename
-                        counter = counter - strlen(buf);
-                    }
-                    printf("Username matched\n");
-                    printf("Went over %d characters\n", counter);
-                    fseek(up, counter, SEEK_SET);
-                    printf("Moved file pointer...\n");
-                    fprintf(up, "%s;", user.user_filename);
+                printf("Incorrect Login.");
+                close(new_fd);
+                continue;
+            }
+            else if (!strcmp(returnvalue, "NF")) // Bad / No File
+            {
+                printf("NF tag\n");
+                printf("Helping user: %s\n", user.username);
+                char *randomstring = randomStringGenerator();
+                user.user_filename = randomstring;
+                FILE *fp = fopen(randomstring, "w");
+                FILE *up = fopen("users.txt", "r+");
+                if (fp == NULL)
+                {
+                    perror("fopen");
+                    close(thepipe[1]);
+                    exit(0);
                 }
-                else
-                    continue;
+                if (up == NULL)
+                {
+                    perror("fopen");
+                    close(thepipe[1]);
+                    exit(0);
+                }
+                char *line = NULL;
+                char *buf;
+                size_t linesize = 0;
+                ssize_t linelen;
+                int counter = 0;
+                printf("Grabbing line...\n");
+                while ((linelen = getline(&line, &linesize, up)) != -1)
+                {
+                    printf("Current line is: %s\n", line);
+                    counter += (int)linelen;
+                    buf = strtok(line, ";");
+                    if (!strcmp(buf, "//")) // If comment line
+                        continue;
+                    else if (!strcasecmp(buf, user.username))
+                    { // Line we want
+                        buf = strtok(NULL, ";");
+                        buf = strtok(NULL, ";");
+                        if (buf != NULL)
+                        { // If user has filename
+                            counter = counter - strlen(buf);
+                        }
+                        printf("Username matched\n");
+                        printf("Went over %d characters\n", counter);
+                        fseek(up, counter, SEEK_SET);
+                        printf("Moved file pointer...\n");
+                        fprintf(up, "%s;", user.user_filename);
+                    }
+                    else
+                        continue;
+                }
             }
         }
         close(new_fd);
