@@ -90,7 +90,7 @@ int loadUser(char* filename) {
     printf("User %s has attempted %d questions, resulting in a total score of: %d\n", user.username, user.attempted, user.total_score);
 }
 
-// Logs user in, Returns 0 on success, 1 on password failure and returns 2 on login failure
+// Logs user in, Returns 0 on success, 1 on password failure and returns -1 on login failure
 int login(char username[], char password[], char **filename) {
 
     char temp[32];
@@ -124,7 +124,7 @@ int login(char username[], char password[], char **filename) {
             }
             else {
                 printf("Incorrect Password\n");
-                return -1;
+                return 1;
             }
         }
         else
