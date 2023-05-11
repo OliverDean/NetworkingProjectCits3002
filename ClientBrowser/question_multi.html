@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="icon.png" sizes="32x32" />
     <title>Question Page</title>
-    <!-- <link rel="stylesheet" href="{{ url_for('ClientBrowser', filename='styles.css') }}"> -->
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -14,30 +13,15 @@
       <h1>Question 1</h1>
       <form id="questionForm">
         <!-- Multiple-choice question module -->
-        <div class="question-module multiple-choice">
-          <p>Which of the following is not a programming language?</p>
-          <div class="form-group">
-            <input type="radio" id="option1" name="question" value="option1" />
-            <label for="option1">Python</label>
-          </div>
-          <div class="form-group">
-            <input type="radio" id="option2" name="question" value="option2" />
-            <label for="option2">Java</label>
-          </div>
-          <div class="form-group">
-            <input type="radio" id="option3" name="question" value="option3" />
-            <label for="option3">C++</label>
-          </div>
-          <div class="form-group">
-            <input type="radio" id="option4" name="question" value="option4" />
-            <label for="option4">Gibberish</label>
-          </div>
-        </div>
+        
+        
         <div class="navigation-buttons">
           <button type="button" class="prev-question">Previous Question</button>
+          <button type="submit" class="submit-answer">Submit Answer</button>
           <button type="button" class="next-question">Next Question</button>
         </div>
       </form>
     </div>
+    <script src="populateQuestion.js"></script>
   </body>
 </html>

@@ -1,0 +1,167 @@
+[
+    {
+        "type": "mcq",
+        "text": "Who developed Python Programming Language?",
+        "options": [
+            "Wick van Rossum",
+            "Rasmus Lerdorf",
+            "Guido van Rossum",
+            "Niene Stom"
+        ],
+        "answer": 2
+    },
+    {
+        "type": "mcq",
+        "text": "Which type of Programming does Python support?",
+        "options": [
+            "object-oriented programming",
+            "structured programming",
+            "functional programming",
+            "all of the mentioned"
+        ],
+        "answer": 3
+    },
+    {
+        "type": "mcq",
+        "text": "Is Python case sensitive when dealing with identifiers?",
+        "options": [
+            "no",
+            "yes",
+            "machine dependent",
+            "none of the mentioned"
+        ],
+        "answer": 1
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following is the correct extension of the Python file?",
+        "options": [
+            ".python",
+            ".pl",
+            ".py",
+            ".p"
+        ],
+        "answer": 2
+    },
+    {
+        "type": "mcq",
+        "text": "Is Python code compiled or interpreted?",
+        "options": [
+            "Python code is both compiled and interpreted",
+            "Python code is neither compiled nor interpreted",
+            "Python code is only compiled",
+            "Python code is only interpreted"
+        ],
+        "answer": 0
+    },
+    {
+        "type": "mcq",
+        "text": "All keywords in Python are in _________",
+        "options": [
+            "Capitalized",
+            "lower case",
+            "UPPER CASE",
+            "None of the mentioned"
+        ],
+        "answer": 3
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following is used to define a block of code in Python language?",
+        "options": [
+            "Indentation",
+            "Key",
+            "Brackets",
+            "All of the mentioned"
+        ],
+        "answer": 0
+    },
+    {
+        "type": "mcq",
+        "text": "Which keyword is used for function in Python language?",
+        "options": [
+            "Function",
+            "def",
+            "Fun",
+            "Define"
+        ],
+        "answer": 1
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following character is used to give single-line comments in Python?",
+        "options": [
+            "//",
+            "#",
+            "!",
+            "/*"
+        ],
+        "answer": 1
+    },
+    {
+        "type": "mcq",
+        "text": "What does pip stand for python?",
+        "options": [
+            "Pip Installs Python",
+            "Pip Installs Packages",
+            "Preferred Installer Program",
+            "All of the mentioned"
+        ],
+        "answer": 2
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following is not a valid C variable name?",
+        "options": [
+            "int number;",
+            "float rate;",
+            "int variable_count;",
+            "int $main;"
+        ],
+        "answer": 3
+    },
+    {
+        "type": "mcq",
+        "text": "All keywords in C are in ____________",
+        "options": [
+            "LowerCase letters",
+            "UpperCase letters",
+            "CamelCase letters",
+            "None of the mentioned"
+        ],
+        "answer": 0
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following is true for variable names in C?",
+        "options": [
+            "They can contain alphanumeric characters as well as special characters",
+            "It is not an error to declare a variable to be one of the keywords(like goto, static)",
+            "Variable names cannot start with a digit",
+            "Variable can be of any length"
+        ],
+        "answer": 2
+    },
+    {
+        "type": "mcq",
+        "text": "Which is valid C expression?",
+        "options": [
+            "int my_num = 100,000;",
+            "int my_num = 100000;",
+            "int my num = 1000;",
+            "int $my_num = 10000;"
+        ],
+        "answer": 1
+    },
+    {
+        "type": "mcq",
+        "text": "Which of the following cannot be a variable name in C?",
+        "options": [
+            "volatile",
+            "true",
+            "friend",
+            "export"
+        ],
+        "answer": 0
+    }
+]
