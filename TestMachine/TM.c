@@ -42,7 +42,6 @@ int loadUser(char* filename) {
     memset(user.questions, 0, sizeof(user.questions)); // make array all 0
     user.total_score = 0;
     user.attempted = 0;
-    bool flag = false;
     
     FILE *fp = fopen(filename, "r"); // Open user file
     if (fp == NULL) {
@@ -56,28 +55,22 @@ int loadUser(char* filename) {
             continue;
         else if ((strcasecmp(buf, user.username)) && (strcasecmp(buf, "q"))) { // If username in file doesn't match signed in user
             printf("Incorrect username in file!\nUsername in file: %s\nUsername given:%s\n", buf, user.username);
-            flag == true;
             return -1;
         }
         else if (!strcmp(buf, "q")) { // question line
             buf = strtok(NULL, ";"); // QB its from
-            printf("QB: %s\n", buf);
             user.QB[QBcounter] = buf;
             buf = strtok(NULL, ";"); // QuestionID
-            printf("QuestionID: %s\n", buf);
             user.QuestionID[QBcounter] = buf;
             buf = strtok(NULL, ";"); // Attempted marks
 
             for (buf; *buf != '\0'; buf++) { // For the marks string
                 if (*buf == 'N') { // If user has answered incorrectly
-                    printf("Mark Saved: %c\n", *buf);
                     if (user.questions[QBcounter] == 0)
                         user.attempted++;
                     user.questions[QBcounter]++;
-                    printf("User has attemped question %d, %d times\n", QBcounter, user.questions[QBcounter]);
                 }
                 else if (*buf == 'Y') { // If user has answered correctly
-                    printf("Mark Saved: %c\n", *buf);
                     user.score[QBcounter] = 3 - user.questions[QBcounter];
                     user.total_score += user.score[QBcounter];
                     if (user.questions[QBcounter] == 0) {
@@ -86,7 +79,6 @@ int loadUser(char* filename) {
                     break;
                 }
                 else if (*buf == '-') {
-                    printf("Mark Saved: %c\n", *buf);
                     break;
                 }
             }
@@ -227,10 +219,12 @@ int main(int argc, char* argv[]) {
         sin_size = sizeof their_addr;
         int PID = 0;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        char bufferpy[100];
         if (new_fd == -1) {
             perror("accept");
             continue;
         }
+        printf("Accepted connection!\n");
 
         int thepipe[2];
 
