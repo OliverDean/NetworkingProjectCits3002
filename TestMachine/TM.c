@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #define PORT "4125"
 #define BACKLOG 10
@@ -20,10 +21,10 @@
 typedef struct curUser {
     char username[32];
     char password[32];
-    int userID;
-    int QB[10]; // Each question is 0 or 1 (showing what QB from)
-    int questions; // Max of 10
-    int attempted[10]; // Each has a max of 3
+    char *QB[10]; // Each question is c or python, indicating where its 
+    char *QuestionID[10]; // Indicating what the questionID is
+    int attempted; // Max of 10
+    int questions[10]; // Each has a max of 3
     int score[10]; // Max of 3
     int total_score; // Max of 30
 }curUser;
@@ -31,40 +32,69 @@ typedef struct curUser {
 curUser user;
 
 // Loads user data into structure
-void loadUser(char* buf) {
-    buf = strtok(NULL, ";");
-    user.userID = atoi(buf);
-    //printf("UserID: %d\n", user.userID);
-    for (int i = 0; i < 9; i++) {
-        buf = strtok(NULL, " ");
-        user.QB[i] = atoi(buf);
-        //printf("Question %d from QB %d\n", i+1, user.QB[i]);
+int loadUser(char* filename) {
+
+    char * line = NULL;
+    char *buf;
+    size_t linesize = 0;
+    ssize_t linelen;
+    int QBcounter = 0;
+    memset(user.questions, 0, sizeof(user.questions)); // make array all 0
+    user.total_score = 0;
+    user.attempted = 0;
+    bool flag = false;
+    
+    FILE *fp = fopen(filename, "r"); // Open user file
+    if (fp == NULL) {
+        perror("fopen");
+        return -1;
     }
-    buf = strtok(NULL, ";");
-    user.QB[9] = atoi(buf);
-    //printf("Question %d from QB %d\n", 10, user.QB[9]);
-    buf = strtok(NULL, ";");
-    user.questions = atoi(buf);
-    //printf("How many questions has user attempted: %d\n", user.questions);
-    for (int y = 0; y < 9; y++) {
-        buf = strtok(NULL, " ");
-        user.attempted[y] = atoi(buf);
-        //printf("User has attempted question %d, %d times\n", y+1, user.attempted[y]);
+
+    while ((linelen = getline(&line, &linesize, fp)) != -1) { 
+        buf = strtok(line, ";");
+        if (!strcmp(buf, "//")) // Comment line
+            continue;
+        else if ((strcasecmp(buf, user.username)) && (strcasecmp(buf, "q"))) { // If username in file doesn't match signed in user
+            printf("Incorrect username in file!\nUsername in file: %s\nUsername given:%s\n", buf, user.username);
+            flag == true;
+            return -1;
+        }
+        else if (!strcmp(buf, "q")) { // question line
+            buf = strtok(NULL, ";"); // QB its from
+            printf("QB: %s\n", buf);
+            user.QB[QBcounter] = buf;
+            buf = strtok(NULL, ";"); // QuestionID
+            printf("QuestionID: %s\n", buf);
+            user.QuestionID[QBcounter] = buf;
+            buf = strtok(NULL, ";"); // Attempted marks
+
+            for (buf; *buf != '\0'; buf++) { // For the marks string
+                if (*buf == 'N') { // If user has answered incorrectly
+                    printf("Mark Saved: %c\n", *buf);
+                    if (user.questions[QBcounter] == 0)
+                        user.attempted++;
+                    user.questions[QBcounter]++;
+                    printf("User has attemped question %d, %d times\n", QBcounter, user.questions[QBcounter]);
+                }
+                else if (*buf == 'Y') { // If user has answered correctly
+                    printf("Mark Saved: %c\n", *buf);
+                    user.score[QBcounter] = 3 - user.questions[QBcounter];
+                    user.total_score += user.score[QBcounter];
+                    if (user.questions[QBcounter] == 0) {
+                        user.attempted++;
+                    }
+                    break;
+                }
+                else if (*buf == '-') {
+                    printf("Mark Saved: %c\n", *buf);
+                    break;
+                }
+            }
+
+            QBcounter++;
+        }
     }
-    buf = strtok(NULL, ";");
-    user.attempted[9] = atoi(buf);
-    //printf("User has attempted question %d, %d times\n", 10, user.attempted[9]);
-    for (int x = 0; x < 9; x++) {
-        buf = strtok(NULL, " ");
-        user.score[x] = atoi(buf);
-        //printf("User has scored %d on question %d\n", user.score[x], x+1);
-    }
-    buf = strtok(NULL, ";");
-    user.score[9] = atoi(buf);
-    //printf("User has scored %d on question %d\n", user.score[9], 10);
-    buf = strtok(NULL, ";");
-    user.total_score = atoi(buf);
-    //printf("User has a total score of: %d\n", user.total_score);
+    printf("User %s has attempted %d questions, resulting in a total score of: %d\n", user.username, user.attempted, user.total_score);
 }
 
 // Logs user in, Returns 0 on success, 1 on password failure and returns 2 on login failure
@@ -76,7 +106,6 @@ int login(char username[], char password[]) {
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
-    char test[32] = "joel";
 
     FILE *fp = fopen("users.txt", "r");
     printf("Opening users text file\n");
@@ -89,12 +118,17 @@ int login(char username[], char password[]) {
             printf("Usernames match\n");
             strcpy(temp, buf);
             buf = strtok(NULL, " "); 
-            if (!strcasecmp(buf, password)) {
+            if (!strcmp(buf, password)) { // If passwords equal (must be case-sensitive)
                 strcpy(user.password, buf);
                 strcpy(user.username, temp);
-                loadUser(buf);
                 printf("Signed in!!!\n");
-                return 0;
+                buf = strtok(NULL, ";");
+                printf("Filename is %s\n", buf);
+                fclose(fp);
+                if (!loadUser(buf))
+                    return 0;
+                else
+                    return -1;
             }
             else {
                 printf("Incorrect Password\n");
@@ -104,7 +138,6 @@ int login(char username[], char password[]) {
         else
             continue; 
     }
-    fclose(fp);
     return 2;
 }
 
