@@ -155,9 +155,9 @@ int main(int argc, char* argv[]) {
 
    // RUN TM IN ONE CMD WINDOW, IN A SEPERATE WINDOW RUN 'TELNET (REMOTEHOSTNAME) 4125
 
-    int sockfd, new_fd;
+    int sockfd, new_fd, pqb_fd, cqb_fd;
     struct addrinfo hints, *servinfo, *p;
-    struct sockaddr_storage their_addr;
+    struct sockaddr_storage their_addr, pqb_addr, cqb_addr;
     socklen_t sin_size;
     struct sigaction sa;
     int yes = 1;
@@ -244,8 +244,25 @@ int main(int argc, char* argv[]) {
                 perror("recv");
             bufferpy[strcspn(bufferpy, "\n")] = '\0';
             bufferpy[strcspn(bufferpy, "\r")] = '\0';
-            if (!strcasecmp(bufferpy, "QB")) { // Allow us to determine if connection is QB or from clients
-                printf("From QB\n");
+            if (!strcasecmp(bufferpy, "PQB")) { // Allow us to determine if connection is PQB or from clients
+                printf("From PQB\n");
+                pqb_fd = new_fd;
+                pqb_addr = their_addr;
+                if (send(pqb_fd, "Testing Test", 12, 0) == -1)
+                    perror("send");
+                bufferflag = true;
+                while (1) {
+                    if (send(pqb_fd, "Testing Test", 12, 0) == -1)
+                        perror("send");
+                    continue;
+                }
+                exit(0);
+            }
+            else if (!strcasecmp(bufferpy, "CQB")) { // Allow us to determine if connection is CQB or from clients
+                printf("From CQB\n");
+                cqb_fd = new_fd;
+                pqb_addr = their_addr;
+                close(new_fd);
                 bufferflag = true;
                 exit(0);
             }
@@ -257,12 +274,17 @@ int main(int argc, char* argv[]) {
                 printf("Waiting for data.\n");
                 if (recv(new_fd, username, sizeof(username), 0) == -1)
                     perror("recv");
-                write(thepipe[1], username, sizeof(username));
+                //write(thepipe[1], username, sizeof(username));
                 if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
                     perror("send");
                 if (recv(new_fd, password, sizeof(password), 0) == -1)
                     perror("recv");
-                write(thepipe[1], password, sizeof(password));
+                //write(thepipe[1], password, sizeof(password));
+                username[strcspn(username, "\n")] = '\0';
+                username[strcspn(username, "\r")] = '\0';
+                password[strcspn(password, "\n")] = '\0';
+                password[strcspn(password, "\r")] = '\0';
+                int temp = login(username, password);
                 close(thepipe[1]);
                 exit(0);
             }
@@ -272,20 +294,6 @@ int main(int argc, char* argv[]) {
                 exit(0);
             }
         }
-        if (bufferflag)
-            continue;
-        close(thepipe[1]);
-        read(thepipe[0], username, sizeof(username));
-        read(thepipe[0], password, sizeof(password));
-        close(thepipe[0]);
-        username[strcspn(username, "\n")] = '\0';
-        username[strcspn(username, "\r")] = '\0';
-        password[strcspn(password, "\n")] = '\0';
-        password[strcspn(password, "\r")] = '\0';
-        close(new_fd);  // parent doesn't need this
-        int temp = login(username, password);
-
-        //break;
     }
 
     int temp = login(username, password);
