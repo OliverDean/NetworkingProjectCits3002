@@ -435,6 +435,7 @@ int main(int argc, char *argv[])
                         buf = strtok(NULL, ";");
                         if (buf != NULL)
                         { // If user has filename
+                            remove(buf);
                             counter = counter - strlen(buf);
                         }
                         printf("Username matched\n");
