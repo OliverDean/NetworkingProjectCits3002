@@ -35,17 +35,14 @@ def read_question_bank(file_name):
 
         # Request a specific question file
         #s.sendall(file_name.encode())
-        QB = "PQB"
-        s.send(QB.encode())
-        query = s.recv(1024)
-        print(query.decode())
+        s.send("PQB".encode())
         # Receive the file from the server
         data = b''
         while True:
             packet = s.recv(1024)
             if not packet:
                 break
-            data += packet
+            data += packetpipe
 
     # Write the received data to a file
     with open(file_name, "wb") as f:

@@ -27,6 +27,7 @@ typedef struct curUser {
     int questions[10]; // Each has a max of 3
     int score[10]; // Max of 3
     int total_score; // Max of 30
+    char *user_filename;
 }curUser;
 
 curUser user;
@@ -90,7 +91,7 @@ int loadUser(char* filename) {
 }
 
 // Logs user in, Returns 0 on success, 1 on password failure and returns 2 on login failure
-int login(char username[], char password[]) {
+int login(char username[], char password[], char **filename) {
 
     char temp[32];
     char* line = NULL;
@@ -115,22 +116,21 @@ int login(char username[], char password[]) {
                 strcpy(user.username, temp);
                 printf("Signed in!!!\n");
                 buf = strtok(NULL, ";");
-                printf("Filename is %s\n", buf);
+                char *temp = malloc(1024);
+                strcpy(temp, buf);
+                *filename = temp;
                 fclose(fp);
-                if (!loadUser(buf))
-                    return 0;
-                else
-                    return -1;
+                return 0;
             }
             else {
                 printf("Incorrect Password\n");
-                return 1;
+                return -1;
             }
         }
         else
             continue; 
     }
-    return 2;
+    return -1;
 }
 
 void handle_sigchld(int sig) {
@@ -236,7 +236,6 @@ int main(int argc, char* argv[]) {
 
         if (!fork()) { // this is the child process
             //char buffer[32] = {0};
-            close(thepipe[0]); // Child never needs to
             close(sockfd); // child doesn't need the listener
             memset(username,0,sizeof(username));
             memset(password,0,sizeof(password));
@@ -245,24 +244,18 @@ int main(int argc, char* argv[]) {
             bufferpy[strcspn(bufferpy, "\n")] = '\0';
             bufferpy[strcspn(bufferpy, "\r")] = '\0';
             if (!strcasecmp(bufferpy, "PQB")) { // Allow us to determine if connection is PQB or from clients
+                char buffer[1024];
                 printf("From PQB\n");
                 pqb_fd = new_fd;
                 pqb_addr = their_addr;
-                if (send(pqb_fd, "Testing Test", 12, 0) == -1)
-                    perror("send");
                 bufferflag = true;
-                while (1) {
-                    if (send(pqb_fd, "Testing Test", 12, 0) == -1)
-                        perror("send");
-                    continue;
-                }
+                read(thepipe[0], buffer, sizeof(buffer));
                 exit(0);
             }
             else if (!strcasecmp(bufferpy, "CQB")) { // Allow us to determine if connection is CQB or from clients
                 printf("From CQB\n");
                 cqb_fd = new_fd;
                 pqb_addr = their_addr;
-                close(new_fd);
                 bufferflag = true;
                 exit(0);
             }
@@ -284,7 +277,9 @@ int main(int argc, char* argv[]) {
                 username[strcspn(username, "\r")] = '\0';
                 password[strcspn(password, "\n")] = '\0';
                 password[strcspn(password, "\r")] = '\0';
-                int temp = login(username, password);
+                if(login(username, password, &user.user_filename) == -1) { // Login fails
+                    printf("Login Failed.\n");
+                }
                 close(thepipe[1]);
                 exit(0);
             }
@@ -294,9 +289,7 @@ int main(int argc, char* argv[]) {
                 exit(0);
             }
         }
+        close(new_fd);
     }
-
-    int temp = login(username, password);
-
     return 0;
 }
