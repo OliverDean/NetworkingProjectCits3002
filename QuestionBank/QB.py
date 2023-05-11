@@ -5,7 +5,7 @@ import socket
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "tm.example.com"
+TM_SERVER = "192.168.220.118"
 TM_PORT = 4125
 
 def communicate_with_tm(question, answer):
@@ -14,10 +14,12 @@ def communicate_with_tm(question, answer):
         s.connect((TM_SERVER, TM_PORT))
 
         # Send the question and answer to the TM server
-        s.sendall(f"{question}\n{answer}".encode())
+        #s.sendall(f"{question}\n{answer}".encode())
 
         # Receive the response from the TM server
         data = s.recv(1024)
+
+        s.send()
 
     # Decode the received data and return it
     return data.decode()
@@ -27,9 +29,17 @@ def read_question_bank(file_name):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((TM_SERVER, TM_PORT))
 
-        # Request a specific question file
-        s.sendall(file_name.encode())
+        print("connected!\n")
 
+        # Request a specific question file
+        #s.sendall(file_name.encode())
+
+        data = s.recv(25)
+        username = input(data.decode())
+        s.send(username.encode())
+        data2 = s.recv(25)
+        password = input(data2.decode())
+        s.send(password.encode())
         # Receive the file from the server
         data = b''
         while True:

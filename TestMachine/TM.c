@@ -239,8 +239,10 @@ int main(int argc, char* argv[]) {
             close(sockfd); // child doesn't need the listener
             memset(username,0,sizeof(username));
             memset(password,0,sizeof(password));
+            printf("sending data\n");
             if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
                 perror("send");
+            printf("Waiting for data.\n");
             if (recv(new_fd, username, sizeof(username), 0) == -1)
                 perror("recv");
             write(thepipe[1], username, sizeof(username));
