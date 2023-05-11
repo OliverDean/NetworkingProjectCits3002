@@ -15,7 +15,8 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#define PORT "4125"
+#define TMPORT "4125"
+#define QBPORT "4126"
 #define BACKLOG 10
 
 typedef struct curUser
@@ -220,7 +221,7 @@ int main(int argc, char *argv[])
     hints.ai_flags = AI_PASSIVE;      // Fill my IP for me
 
     // Get my local host address info
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0)
+    if ((rv = getaddrinfo(NULL, TMPORT, &hints, &servinfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
@@ -402,19 +403,15 @@ int main(int argc, char *argv[])
                 printf("Helping user: %s\n", user.username);
                 char *randomstring = randomStringGenerator();
                 user.user_filename = randomstring;
-                FILE *fp = fopen(randomstring, "w");
+                FILE *fp = fopen(user.user_filename, "w");
                 FILE *up = fopen("users.txt", "r+");
                 if (fp == NULL)
                 {
                     perror("fopen");
-                    close(thepipe[1]);
-                    exit(0);
                 }
                 if (up == NULL)
                 {
                     perror("fopen");
-                    close(thepipe[1]);
-                    exit(0);
                 }
                 char *line = NULL;
                 char *buf;
@@ -443,6 +440,12 @@ int main(int argc, char *argv[])
                         fseek(up, counter, SEEK_SET);
                         printf("Moved file pointer...\n");
                         fprintf(up, "%s;", user.user_filename);
+                        if (fp == NULL) {
+                            fp = fopen(user.user_filename, "w");
+                        }
+                        fprintf(fp, "%s", "test");
+                        fclose(fp);
+                        fclose(up);
                     }
                     else
                         continue;
