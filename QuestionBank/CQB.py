@@ -37,17 +37,18 @@ def read_question_bank(file_name):
         #s.sendall(file_name.encode())
         CQB = "CQB"
         s.send(CQB.encode())
+        questionID = s.recv(3)
         # Receive the file from the server
-        data = b''
-        while True:
-            packet = s.recv(1024)
-            if not packet:
-                break
-            data += packet
+        #data = b''
+        #while True:
+        #    packet = s.recv(1024)
+        #    if not packet:
+        #        break
+        #    data += packet
 
     # Write the received data to a file
-    with open(file_name, "wb") as f:
-        f.write(data)
+    #with open(file_name, "wb") as f:
+    #    f.write(data)
 
     with open(file_name, "r", encoding="utf-8") as f:
         lines = f.read().splitlines()
@@ -56,6 +57,8 @@ def read_question_bank(file_name):
     while i < len(lines):
         if not lines[i].strip():
             i += 1
+            continue
+        if lines[i].strip() != questionID.decode():
             continue
         question_type = lines[i].strip()
         i += 1
@@ -100,7 +103,7 @@ def save_answered_question(question_content):
 
 
 def main():
-    questions = read_question_bank("Questionbank.txt")
+    questions = read_question_bank(CQB)
     answered_questions = load_answered_questions()
     questions = [q for q in questions if q["content"] not in answered_questions]
     if not questions:
