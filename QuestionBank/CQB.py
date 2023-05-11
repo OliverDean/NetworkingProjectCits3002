@@ -35,8 +35,8 @@ def read_question_bank(file_name):
 
         # Request a specific question file
         #s.sendall(file_name.encode())
-        QB = "QB"
-        s.send(QB.encode())
+        CQB = "CQB"
+        s.send(CQB.encode())
         # Receive the file from the server
         data = b''
         while True:
