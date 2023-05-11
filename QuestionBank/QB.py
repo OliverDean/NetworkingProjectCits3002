@@ -33,13 +33,8 @@ def read_question_bank(file_name):
 
         # Request a specific question file
         #s.sendall(file_name.encode())
-
-        data = s.recv(25)
-        username = input(data.decode())
-        s.send(username.encode())
-        data2 = s.recv(25)
-        password = input(data2.decode())
-        s.send(password.encode())
+        QB = "QB"
+        s.send(QB.encode())
         # Receive the file from the server
         data = b''
         while True:

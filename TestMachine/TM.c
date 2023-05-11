@@ -220,6 +220,7 @@ int main(int argc, char* argv[]) {
         int PID = 0;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
         char bufferpy[100];
+        bool bufferflag = false;
         if (new_fd == -1) {
             perror("accept");
             continue;
@@ -239,21 +240,40 @@ int main(int argc, char* argv[]) {
             close(sockfd); // child doesn't need the listener
             memset(username,0,sizeof(username));
             memset(password,0,sizeof(password));
-            printf("sending data\n");
-            if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
-                perror("send");
-            printf("Waiting for data.\n");
-            if (recv(new_fd, username, sizeof(username), 0) == -1)
+            if (recv(new_fd, bufferpy, sizeof(bufferpy), 0) == -1)
                 perror("recv");
-            write(thepipe[1], username, sizeof(username));
-            if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
-                perror("send");
-            if (recv(new_fd, password, sizeof(password), 0) == -1) 
-                perror("recv");
-            write(thepipe[1], password, sizeof(password));
-            close(thepipe[1]);
-            exit(0);
+            bufferpy[strcspn(bufferpy, "\n")] = '\0';
+            bufferpy[strcspn(bufferpy, "\r")] = '\0';
+            if (!strcasecmp(bufferpy, "QB")) { // Allow us to determine if connection is QB or from clients
+                printf("From QB\n");
+                bufferflag = true;
+                exit(0);
+            }
+            else if (!strcasecmp(bufferpy, "TM"))
+            {
+                printf("sending data\n");
+                if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
+                    perror("send");
+                printf("Waiting for data.\n");
+                if (recv(new_fd, username, sizeof(username), 0) == -1)
+                    perror("recv");
+                write(thepipe[1], username, sizeof(username));
+                if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(new_fd, password, sizeof(password), 0) == -1)
+                    perror("recv");
+                write(thepipe[1], password, sizeof(password));
+                close(thepipe[1]);
+                exit(0);
+            }
+            else {
+                printf("Incorrect prefix supplied!\n");
+                bufferflag = true;
+                exit(0);
+            }
         }
+        if (bufferflag)
+            continue;
         close(thepipe[1]);
         read(thepipe[0], username, sizeof(username));
         read(thepipe[0], password, sizeof(password));
