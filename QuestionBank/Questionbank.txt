@@ -119,5 +119,5 @@ D. export
 A
 
 programming challenge
-编写一个函数，该函数接受一个字符串并返回其反转版本.
+write a function, and return its reversed version.
 return s[::-1]
