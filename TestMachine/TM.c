@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #define PORT "4125"
 #define BACKLOG 10
@@ -20,10 +21,10 @@
 typedef struct curUser {
     char username[32];
     char password[32];
-    int userID;
-    int QB[10]; // Each question is 0 or 1 (showing what QB from)
-    int questions; // Max of 10
-    int attempted[10]; // Each has a max of 3
+    char *QB[10]; // Each question is c or python, indicating where its 
+    char *QuestionID[10]; // Indicating what the questionID is
+    int attempted; // Max of 10
+    int questions[10]; // Each has a max of 3
     int score[10]; // Max of 3
     int total_score; // Max of 30
 }curUser;
@@ -31,45 +32,67 @@ typedef struct curUser {
 curUser user;
 
 // Loads user data into structure
-void loadUser(char* buf) {
-    buf = strtok(NULL, ";");
-    user.userID = atoi(buf);
-    //printf("UserID: %d\n", user.userID);
-    for (int i = 0; i < 9; i++) {
-        buf = strtok(NULL, " ");
-        user.QB[i] = atoi(buf);
-        //printf("Question %d from QB %d\n", i+1, user.QB[i]);
+int loadUser(char* filename) {
+
+    char * line = NULL;
+    char *buf;
+    size_t linesize = 0;
+    ssize_t linelen;
+    int QBcounter = 0;
+    memset(user.questions, 0, sizeof(user.questions)); // make array all 0
+    user.total_score = 0;
+    user.attempted = 0;
+    
+    FILE *fp = fopen(filename, "r"); // Open user file
+    if (fp == NULL) {
+        perror("fopen");
+        return -1;
     }
-    buf = strtok(NULL, ";");
-    user.QB[9] = atoi(buf);
-    //printf("Question %d from QB %d\n", 10, user.QB[9]);
-    buf = strtok(NULL, ";");
-    user.questions = atoi(buf);
-    //printf("How many questions has user attempted: %d\n", user.questions);
-    for (int y = 0; y < 9; y++) {
-        buf = strtok(NULL, " ");
-        user.attempted[y] = atoi(buf);
-        //printf("User has attempted question %d, %d times\n", y+1, user.attempted[y]);
+
+    while ((linelen = getline(&line, &linesize, fp)) != -1) { 
+        buf = strtok(line, ";");
+        if (!strcmp(buf, "//")) // Comment line
+            continue;
+        else if ((strcasecmp(buf, user.username)) && (strcasecmp(buf, "q"))) { // If username in file doesn't match signed in user
+            printf("Incorrect username in file!\nUsername in file: %s\nUsername given:%s\n", buf, user.username);
+            return -1;
+        }
+        else if (!strcmp(buf, "q")) { // question line
+            buf = strtok(NULL, ";"); // QB its from
+            user.QB[QBcounter] = buf;
+            buf = strtok(NULL, ";"); // QuestionID
+            user.QuestionID[QBcounter] = buf;
+            buf = strtok(NULL, ";"); // Attempted marks
+
+            for (buf; *buf != '\0'; buf++) { // For the marks string
+                if (*buf == 'N') { // If user has answered incorrectly
+                    if (user.questions[QBcounter] == 0)
+                        user.attempted++;
+                    user.questions[QBcounter]++;
+                }
+                else if (*buf == 'Y') { // If user has answered correctly
+                    user.score[QBcounter] = 3 - user.questions[QBcounter];
+                    user.total_score += user.score[QBcounter];
+                    if (user.questions[QBcounter] == 0) {
+                        user.attempted++;
+                    }
+                    break;
+                }
+                else if (*buf == '-') {
+                    break;
+                }
+            }
+
+            QBcounter++;
+        }
     }
-    buf = strtok(NULL, ";");
-    user.attempted[9] = atoi(buf);
-    //printf("User has attempted question %d, %d times\n", 10, user.attempted[9]);
-    for (int x = 0; x < 9; x++) {
-        buf = strtok(NULL, " ");
-        user.score[x] = atoi(buf);
-        //printf("User has scored %d on question %d\n", user.score[x], x+1);
-    }
-    buf = strtok(NULL, ";");
-    user.score[9] = atoi(buf);
-    //printf("User has scored %d on question %d\n", user.score[9], 10);
-    buf = strtok(NULL, ";");
-    user.total_score = atoi(buf);
-    //printf("User has a total score of: %d\n", user.total_score);
+    printf("User %s has attempted %d questions, resulting in a total score of: %d\n", user.username, user.attempted, user.total_score);
 }
 
 // Logs user in, Returns 0 on success, 1 on password failure and returns 2 on login failure
 int login(char username[], char password[]) {
 
+    char temp[32];
     char* line = NULL;
     char* buf;
     size_t linesize = 0;
@@ -77,20 +100,27 @@ int login(char username[], char password[]) {
     int counter = 0;
 
     FILE *fp = fopen("users.txt", "r");
+    printf("Opening users text file\n");
 
     while ((linelen = getline(&line, &linesize, fp)) != -1) {
-        char temp[32];
         buf = strtok(line, " ");
         if (!strcmp(buf, "//")) // If comment line
             continue;
         if (!strcasecmp(buf, username)) { // If strings equal (ignoring case-sensitive for username)
+            printf("Usernames match\n");
             strcpy(temp, buf);
             buf = strtok(NULL, " "); 
-            if (!strcasecmp(buf, password)) {
+            if (!strcmp(buf, password)) { // If passwords equal (must be case-sensitive)
                 strcpy(user.password, buf);
                 strcpy(user.username, temp);
-                loadUser(buf);
-                return 0;
+                printf("Signed in!!!\n");
+                buf = strtok(NULL, ";");
+                printf("Filename is %s\n", buf);
+                fclose(fp);
+                if (!loadUser(buf))
+                    return 0;
+                else
+                    return -1;
             }
             else {
                 printf("Incorrect Password\n");
@@ -98,9 +128,8 @@ int login(char username[], char password[]) {
             }
         }
         else
-            continue;  
+            continue; 
     }
-    fclose(fp);
     return 2;
 }
 
@@ -114,8 +143,8 @@ int main(int argc, char* argv[]) {
 
     char *IP = "192.168.220.118";
     //FTP port is 21
-    char username[32];
-    char password[32];
+    char username[32] = {0};
+    char password[32] = {0};
     
     /* You will need to add (
      "__linux__",
@@ -186,31 +215,79 @@ int main(int argc, char* argv[]) {
 
     printf("waiting for connections...\n");
 
-    while(1) {
+    while(1) {  // main accept() loop
         sin_size = sizeof their_addr;
+        int PID = 0;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+        char bufferpy[100];
+        bool bufferflag = false;
         if (new_fd == -1) {
             perror("accept");
             continue;
         }
+        printf("Accepted connection!\n");
 
-        //getpeername(new_fd, (struct sockaddr*)&their_addr, sizeof(struct sockaddr));
-        //printf("server: got connection from %s\n", s);
+        int thepipe[2];
 
-        if (!fork()) { // Child Process
-            close(sockfd);
-            if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
-                perror("send");
-            if (recv(new_fd, username, 32, 0) == -1)
-                perror("recv");
-            if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
-                perror("send");
-            if (recv(new_fd, password, 32, 0) == -1)
-                perror("recv");
+        if (pipe(thepipe) == -1) {
+            perror("pipe");
+            exit(1);
         }
-        close(new_fd);
+
+        if (!fork()) { // this is the child process
+            //char buffer[32] = {0};
+            close(thepipe[0]); // Child never needs to
+            close(sockfd); // child doesn't need the listener
+            memset(username,0,sizeof(username));
+            memset(password,0,sizeof(password));
+            if (recv(new_fd, bufferpy, sizeof(bufferpy), 0) == -1)
+                perror("recv");
+            bufferpy[strcspn(bufferpy, "\n")] = '\0';
+            bufferpy[strcspn(bufferpy, "\r")] = '\0';
+            if (!strcasecmp(bufferpy, "QB")) { // Allow us to determine if connection is QB or from clients
+                printf("From QB\n");
+                bufferflag = true;
+                exit(0);
+            }
+            else if (!strcasecmp(bufferpy, "TM"))
+            {
+                printf("sending data\n");
+                if (send(new_fd, "Please enter a username: ", 25, 0) == -1)
+                    perror("send");
+                printf("Waiting for data.\n");
+                if (recv(new_fd, username, sizeof(username), 0) == -1)
+                    perror("recv");
+                write(thepipe[1], username, sizeof(username));
+                if (send(new_fd, "Please enter a password: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(new_fd, password, sizeof(password), 0) == -1)
+                    perror("recv");
+                write(thepipe[1], password, sizeof(password));
+                close(thepipe[1]);
+                exit(0);
+            }
+            else {
+                printf("Incorrect prefix supplied!\n");
+                bufferflag = true;
+                exit(0);
+            }
+        }
+        if (bufferflag)
+            continue;
+        close(thepipe[1]);
+        read(thepipe[0], username, sizeof(username));
+        read(thepipe[0], password, sizeof(password));
+        close(thepipe[0]);
+        username[strcspn(username, "\n")] = '\0';
+        username[strcspn(username, "\r")] = '\0';
+        password[strcspn(password, "\n")] = '\0';
+        password[strcspn(password, "\r")] = '\0';
+        close(new_fd);  // parent doesn't need this
+        int temp = login(username, password);
+
+        //break;
     }
-    
+
     int temp = login(username, password);
 
     return 0;

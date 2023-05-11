@@ -1,18 +1,12 @@
 import random
 import os
-from ftplib import FTP
 import socket
 
 answered_questions_file = "answered_questions.txt"
 
-# Define your FTP server credentials here
-FTP_SERVER = "ftp.example.com"
-FTP_USERNAME = "your_username"
-FTP_PASSWORD = "your_password"
-
 # Define your TM server credentials here
-TM_SERVER = "tm.example.com"
-TM_PORT = 12345
+TM_SERVER = "192.168.220.118"
+TM_PORT = 4125
 
 def communicate_with_tm(question, answer):
     # Create a socket and connect to the TM server
@@ -20,29 +14,38 @@ def communicate_with_tm(question, answer):
         s.connect((TM_SERVER, TM_PORT))
 
         # Send the question and answer to the TM server
-        s.sendall(f"{question}\n{answer}".encode())
+        #s.sendall(f"{question}\n{answer}".encode())
 
         # Receive the response from the TM server
         data = s.recv(1024)
+
+        s.send()
 
     # Decode the received data and return it
     return data.decode()
 
 def read_question_bank(file_name):
-    # Connect to the FTP server and login
-    ftp = FTP(FTP_SERVER)
-    ftp.login(user=FTP_USERNAME, passwd=FTP_PASSWORD)
+    # Create a socket and connect to the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((TM_SERVER, TM_PORT))
 
-    # Change to the directory where you store your questions
-    ftp.cwd("questions")
+        print("connected!\n")
 
-    # Download a specific question file
+        # Request a specific question file
+        #s.sendall(file_name.encode())
+        QB = "QB"
+        s.send(QB.encode())
+        # Receive the file from the server
+        data = b''
+        while True:
+            packet = s.recv(1024)
+            if not packet:
+                break
+            data += packet
+
+    # Write the received data to a file
     with open(file_name, "wb") as f:
-        ftp.retrbinary(f"RETR {file_name}", f.write)
-
-    # Close the FTP connection
-    ftp.quit()
-
+        f.write(data)
 
     with open(file_name, "r", encoding="utf-8") as f:
         lines = f.read().splitlines()

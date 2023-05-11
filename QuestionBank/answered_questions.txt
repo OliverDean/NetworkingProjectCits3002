@@ -1,0 +1,16 @@
+What does pip stand for python?
+Who developed Python Programming Language?
+Which of the following is used to define a block of code in Python language?
+All keywords in Python are in _________
+Which of the following character is used to give single-line comments in Python?
+Is Python case sensitive when dealing with identifiers?
+Which keyword is used for function in Python language?
+Which of the following is the correct extension of the Python file?
+Which of the following is not a valid C variable name?
+All keywords in C are in ____________
+Is Python code compiled or interpreted?
+Which of the following cannot be a variable name in C?
+Which type of Programming does Python support?
+Which is valid C expression?
+Which of the following is true for variable names in C?
+编写一个函数，该函数接受一个字符串并返回其反转版本.
