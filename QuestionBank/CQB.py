@@ -8,6 +8,8 @@ answered_questions_file = "answered_questions.txt"
 TM_SERVER = "192.168.220.118"
 TM_PORT = 4125
 
+CQB = "CQuestionBank"
+
 def communicate_with_tm(question, answer):
     # Create a socket and connect to the TM server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
