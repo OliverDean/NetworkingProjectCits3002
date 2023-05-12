@@ -301,6 +301,25 @@ void fixbrokenfile()
     }
 }
 
+char* loginPage()
+{
+    char *returnString;
+    FILE *fp;
+    fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/login.html", "r");
+    // error checking
+    if (fp == NULL) {perror("html file");}
+
+    char line[128];
+    char html_data[5000] = {'\0'};
+    
+    while (fgets(line, sizeof(line), fp))
+    {
+        returnString = strcat(html_data, line);
+    };
+    return returnString;
+
+}
+
 int main(int argc, char *argv[])
 {
     char username[32] = {0};
@@ -436,7 +455,11 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
+        
         printf("Accepted connection!\n");
+        char *loginReturn = loginPage();
+
+        send(newtm_fd, loginReturn, sizeof(loginReturn), 0);
 
         if (!fork())
         { // this is the child process
@@ -460,7 +483,7 @@ int main(int argc, char *argv[])
             password[strcspn(password, "\r")] = '\0';
 
             int loginValue = login(username, password, &user.user_filename);
-            if (loginValue == -1) // Inavlid Username (doesn't exist)
+            if (loginValue == -1) // Invalid Username (doesn't exist)
             {
                 if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
                     perror("send");
@@ -497,6 +520,7 @@ int main(int argc, char *argv[])
 
             if (!strcmp(returnvalue, "YE")) // Success
             {
+                // here is successful user login
                 close(newtm_fd);
                 printf("Closing connection with client...\n");
                 continue;
