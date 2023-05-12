@@ -376,19 +376,21 @@ int main(int argc, char *argv[])
             if (!fork())
             { // this is the child process
                 // close(cqb_fd);
-                char buffer[3];
+                char commandbuffer[3];
+                char questionIDbuffer[9];
                 printf("From CQB\n");
-                read(cqbpipe[0], buffer, 3);
-                printf("Buffer is: %s\n", buffer);
-                if (!strcmp(buffer, "GQ")) // Generate Questions
+                read(cqbpipe[0], commandbuffer, 3);
+                if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
                     printf("attempting to generate questions...\n");
                     if (send(newc_fd, "GQ", 3, 0) == -1)
                         perror("send");
-                    memset(buffer, 0, sizeof(buffer));
-                    if (recv(newc_fd, buffer, 4, 0) == -1)
+                    memset(commandbuffer, 0, sizeof(commandbuffer));
+                    sleep(0.01);
+                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1)
                         perror("recv");
-                    printf("Questions recieved: %s\n", buffer);
+                    questionIDbuffer[8] = '\0';
+                    printf("Questions recieved: %s\n", questionIDbuffer);
                 }
                 close(cqbpipe[0]);
                 close(cqbpipe[1]);
