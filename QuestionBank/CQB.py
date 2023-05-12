@@ -1,43 +1,97 @@
 import random
 import os
 import socket
+import string
 
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.220.118"
-TM_PORT = 4125
+TM_SERVER = "192.168.243.118"
+CQB_PORT = 4127
 
-CQB = "CQuestionBank"
+CQB = "CQuestionBank.txt"
 
-def communicate_with_tm(question, answer):
+def communicate_with_tm():
+    print("testing\n")
     # Create a socket and connect to the TM server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((TM_SERVER, TM_PORT))
+        s.connect((TM_SERVER, CQB_PORT))
+
+        print("connected\n")
+        os.listdir()
 
         # Send the question and answer to the TM server
         #s.sendall(f"{question}\n{answer}".encode())
 
         # Receive the response from the TM server
-        data = s.recv(1024)
-
-        s.send()
+        data = s.recv(2)
+        print("recieved data ")
+        print(data.decode())
+        # Generate questions
+        if data.decode() == "GQ":
+            print("generating questions\n")
+            questions = generate_questions()
+            arraylength = len(questions)
+            for x in range(arraylength):
+                print(questions[x].encode())
+                s.send(questions[x].encode())
 
     # Decode the received data and return it
     return data.decode()
 
-def read_question_bank(file_name):
+def generate_questions():
+    questions = []
+    index = []
+    for x in range(4): #generate 4 random questions
+        flag = 0
+        print(x)
+        questionID = random.choice(string.ascii_lowercase) #generate random question ID
+        print("question id is:\n")
+        print(questionID)
+        arraylength = len(questions)
+        for y in range(arraylength):
+            if questions[y] == questionID: #if ID has already been generated successfully, generate a new ID
+                x -= 1
+                flag += 1
+                break
+        if flag >= 1:
+            continue
+        buffer = grab_questionID(questionID) #grab question ID if it exists
+        if buffer == "no": #if index wasn't successfully found
+            x -= 1
+            continue
+        questions.append(buffer)
+        index.append(buffer)
+    return questions
+
+def grab_questionID(questionID):
+    with open(CQB, "r", encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    i = 0
+    while i < len(lines):
+        if not lines[i].strip():
+            i+=1
+            continue
+        buff = lines[i].strip()
+        if buff != questionID:
+            i+=1
+            continue
+        print(questionID)
+        print("Found question id")
+        print(buff)
+        return buff
+    return "no"
+            
+
+def read_question_bank(questionID):
     # Create a socket and connect to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((TM_SERVER, TM_PORT))
+    #with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #s.connect((TM_SERVER, CQB_PORT))
 
-        print("connected!\n")
-
+        #print("connected!\n")
         # Request a specific question file
         #s.sendall(file_name.encode())
-        CQB = "CQB"
-        s.send(CQB.encode())
-        questionID = s.recv(3)
+        
         # Receive the file from the server
         #data = b''
         #while True:
@@ -50,7 +104,7 @@ def read_question_bank(file_name):
     #with open(file_name, "wb") as f:
     #    f.write(data)
 
-    with open(file_name, "r", encoding="utf-8") as f:
+    with open(CQB, "r", encoding="utf-8") as f:
         lines = f.read().splitlines()
     questions = []
     i = 0
@@ -103,54 +157,8 @@ def save_answered_question(question_content):
 
 
 def main():
-    questions = read_question_bank(CQB)
-    answered_questions = load_answered_questions()
-    questions = [q for q in questions if q["content"] not in answered_questions]
-    if not questions:
-        print("all question answered")
-        return
-
-    random.shuffle(questions)
-    question = questions[0]
-
-    print(question["content"])
-    if question["type"] == "mcq":
-        for i, option in enumerate(question["options"], start=1):
-            print(f"{i}. {option}")
-        attempts = 3
-        while attempts > 0:
-            answer = input()
-            if answer.isdigit() and 1 <= int(answer) <= len(question["options"]):
-                selected_option = question["options"][int(answer)-1]
-                if selected_option == question["answer"]:
-                    print("right!")
-                    break
-                else:
-                    response = communicate_with_tm(question["content"], answer)
-                    print(response)
-                    attempts -= 1
-                    if attempts > 0:
-                        print(f"wrong,{attempts}chances left")
-                    else:
-                        print("wrong,no more chance")
-            else:
-                print("invalid input")
-    elif question["type"] == "programming challenge":
-        print("this is a programming challenge")
-        user_answer = input()
-        attempts = 3
-        while attempts > 0:
-            if user_answer.strip() == question["answer"]:
-                print("right!")
-                break
-            else:
-                attempts -= 1
-                if attempts > 0:
-                    print(f"wrong,{attempts}chances left")
-                    user_answer = input()
-                else:
-                    print("wrong,no more chance")
-    save_answered_question(question["content"])
+    communicate_with_tm()
+    
 
 
 if __name__ == "__main__":

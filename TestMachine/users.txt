@@ -1,4 +1,5 @@
 //; User Database with each line representing another student with this structure: 
 //; 'username' 'password' 'userCookieFile'
 Joel;password;abcde1234;
-admin;admin;tt9jhfhkm;
+admin;admin;
+user;test;t9jhfhkm;
