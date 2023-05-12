@@ -1,0 +1,83 @@
+aaa
+Who developed Python Programming Language?
+A. Wick van Rossum
+B. Rasmus Lerdorf
+C. Guido van Rossum
+D. Niene Stom
+C
+
+bbb
+Which type of Programming does Python support?
+A. object-oriented programming
+B. structured programming
+C. functional programming
+D. all of the mentioned
+D
+
+ccc
+Is Python case sensitive when dealing with identifiers?
+A. no
+B. yes
+C. machine dependent
+D. none of the mentioned
+B
+
+ddd
+Which of the following is the correct extension of the Python file?
+A. .python
+B. .pl
+C. .py
+D. .p
+C
+
+eee
+Is Python code compiled or interpreted?
+A. Python code is both compiled and interpreted
+B. Python code is neither compiled nor interpreted
+C. Python code is only compiled
+D. Python code is only interpreted
+A
+
+fff
+All keywords in Python are in _________
+A. Capitalized
+B. lower case
+C. UPPER CASE
+D. None of the mentioned
+D
+
+ggg
+Which of the following is used to define a block of code in Python language?
+A. Indentation
+B. Key
+C. Brackets
+D. All of the mentioned
+A
+
+hhh
+Which keyword is used for function in Python language?
+A. Function
+B. def
+C. Fun
+D. Define
+B
+
+iii
+Which of the following character is used to give single-line comments in Python?
+A. //
+B. #
+C. !
+D. /*
+B
+
+jjj
+What does pip stand for python?
+A. Pip Installs Python
+B. Pip Installs Packages
+C. Preferred Installer Program
+D. All of the mentioned
+C
+
+kkk
+Write a function in Python, that prints out 'Hello World!'.
+Hello World!
