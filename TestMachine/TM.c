@@ -36,10 +36,9 @@ typedef struct curUser
 curUser user;
 
 // Loads user data into structure
-// Returns -1 on failure with file
-// Returns -2 if file is corrupted (or not properly built)
+// Returns -1 on failure with file (corrupted / not built correctly)
 // Returns 0 on success
-int loadUser(char *filename)
+int loadUser()
 {
 
     char *line = NULL;
@@ -51,9 +50,10 @@ int loadUser(char *filename)
     user.total_score = 0;
     user.attempted = 0;
 
-    FILE *fp = fopen(filename, "r"); // Open user file
+    FILE *fp = fopen(user.user_filename, "r"); // Open user file
     if (fp == NULL)
     {
+        printf("Attempted to open : %s\n", user.user_filename);
         perror("fopen");
         return -1;
     }
@@ -63,10 +63,12 @@ int loadUser(char *filename)
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) // Comment line
             continue;
-        else if ((strcasecmp(buf, user.username)) && (strcasecmp(buf, "q")))
+        buf[strcspn(buf, "\n")] = '\0';
+        buf[strcspn(buf, "\r")] = '\0';
+        if (strcasecmp(buf, user.username))
         { // If username in file doesn't match signed in user
-            printf("Incorrect username in file!\nUsername in file: %s\nUsername given:%s\n", buf, user.username);
-            return -2;
+            printf("Incorrect username in file!\nUsername in file: %sUsername given:%s\n", buf, user.username);
+            return -1;
         }
         else if (!strcmp(buf, "q"))
         {                            // question line
@@ -105,7 +107,7 @@ int loadUser(char *filename)
     if (QBcounter == 10)
         return 0;
     else if (10 > QBcounter > 0)
-        return -2;
+        return -1;
     else if (QBcounter <= 0)
         return -1;
 }
@@ -201,7 +203,8 @@ int setupsocket(char *port)
     hints.ai_socktype = SOCK_STREAM;  // TCP Stream
     hints.ai_flags = AI_PASSIVE;      // Fill my IP for me
 
-    if ((rv = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, port, &hints, &servinfo)) != 0)
+    {
         perror("getaddrinfo");
         return -1;
     }
@@ -216,7 +219,8 @@ int setupsocket(char *port)
         }
 
         // Allow the kernel to reuse local addresses when validating in later bind() call
-        if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+        if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+        {
             perror("setsockfd");
             return -1;
         }
@@ -245,13 +249,20 @@ int setupsocket(char *port)
     return socketfd;
 }
 
-void fixbrokenfile()
+// Will return file pointer to users cookie file
+FILE *generatenewfile()
 {
-    printf("NF tag\n");
-    printf("Helping user: %s\n", user.username);
-    char *randomstring = randomStringGenerator();
+    printf("inside generate\n");
+    char *line = NULL;
+    char *buf;
+    size_t linesize = 0;
+    ssize_t linelen;
+    int counter = 0;
+    char *randomstring = randomStringGenerator(); // Generate new user cookie
     user.user_filename = randomstring;
-    FILE *fp = fopen(user.user_filename, "w");
+    printf("new user id is: %s\n", user.user_filename);
+    FILE *fp = fopen(user.user_filename, "w"); // Create new user cookie file
+    printf("Opening new files...\n");
     FILE *up = fopen("users.txt", "r+");
     if (fp == NULL)
     {
@@ -261,44 +272,37 @@ void fixbrokenfile()
     {
         perror("fopen");
     }
-    char *line = NULL;
-    char *buf;
-    size_t linesize = 0;
-    ssize_t linelen;
-    int counter = 0;
-    printf("Grabbing line...\n");
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
-        printf("Current line is: %s\n", line);
         counter += (int)linelen;
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) // If comment line
             continue;
         else if (!strcasecmp(buf, user.username))
         { // Line we want
+            printf("found users username: %s\n", buf);
             buf = strtok(NULL, ";");
-            buf = strtok(NULL, ";");
-            if (buf != NULL)
-            { // If user has filename
-                remove(buf);
-                counter = counter - strlen(buf);
-            }
-            printf("Username matched\n");
-            printf("Went over %d characters\n", counter);
-            fseek(up, counter, SEEK_SET);
-            printf("Moved file pointer...\n");
-            fprintf(up, "%s;", user.user_filename);
-            if (fp == NULL)
+            if (!strcmp(buf, user.password))
             {
-                fp = fopen(user.user_filename, "w");
+                buf = strtok(NULL, ";");
+                if (buf != NULL)
+                { // If user has filename, re-write over it in the next step
+                    printf("found user filename is: %s\n", buf);
+                    remove(buf);
+                    counter = (counter - strlen(buf)) - 1;
+                }
+                fseek(up, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
+                fprintf(up, "%s;", user.user_filename); // Add users cookie filename
+                fprintf(fp, "%s\n", user.username);     // Add users username to their own cookie file
+                fclose(fp);
             }
-            fprintf(fp, "%s", "test");
-            fclose(fp);
-            fclose(up);
+            else
+                continue;
         }
         else
             continue;
     }
+    return fp;
 }
 
 int main(int argc, char *argv[])
@@ -334,17 +338,17 @@ int main(int argc, char *argv[])
     printf("PQB socket is: %d\n", pqb_fd);
     tm_fd = setupsocket(TMPORT);
     printf("TM socket is: %d\n", tm_fd);
-    if (cqb_fd == -1) 
+    if (cqb_fd == -1)
     {
         printf("CQB server failed to bind!\n");
         return -1;
     }
-    if (pqb_fd == -1) 
+    if (pqb_fd == -1)
     {
         printf("PQB server failed to bind!\n");
         return -1;
     }
-    if (tm_fd == -1) 
+    if (tm_fd == -1)
     {
         printf("TM server failed to bind!\n");
         return -1;
@@ -352,8 +356,11 @@ int main(int argc, char *argv[])
     printf("waiting for connections...\n");
 
     // This is the C Question Bank loop
+    // CQB is port 4127
     if (!fork())
     { // child process
+        close(pqbpipe[0]); // No need for QB's to communicate
+        close(pqbpipe[1]);
         printf("Listening for CQB..\n");
         while (1)
         { // main accept() loop
@@ -368,29 +375,43 @@ int main(int argc, char *argv[])
 
             if (!fork())
             { // this is the child process
-                //close(cqb_fd);
-                char buffer[1024];
+                // close(cqb_fd);
+                char buffer[3];
                 printf("From CQB\n");
-                if(send(newc_fd, "Hi CQB!\n", 9, 0) == -1)
+                read(cqbpipe[0], buffer, 3);
+                printf("Buffer is: %s\n", buffer);
+                if (!strcmp(buffer, "GQ")) // Generate Questions
                 {
-                    perror("send");
-                    continue;
+                    printf("attempting to generate questions...\n");
+                    if (send(newc_fd, "GQ", 3, 0) == -1)
+                        perror("send");
+                    memset(buffer, 0, sizeof(buffer));
+                    if (recv(newc_fd, buffer, 4, 0) == -1)
+                        perror("recv");
+                    printf("Questions recieved: %s\n", buffer);
                 }
-                read(cqbpipe[0], buffer, sizeof(buffer));
                 close(cqbpipe[0]);
                 close(cqbpipe[1]);
+                close(tmpipe[1]);
+                close(tmpipe[0]);
                 close(newc_fd);
                 exit(0);
             }
             close(newc_fd);
             close(cqbpipe[0]);
             close(cqbpipe[1]);
+            close(pqbpipe[0]);
+            close(pqbpipe[1]);
+            close(tmpipe[1]);
+            close(tmpipe[0]);
         }
     }
 
     // This is the Python Question Bank loop
+    // PQB is port 4126
     if (!fork())
     { // child process
+        int questionsize;
         printf("Listening for PQB...\n");
         while (1)
         { // main accept() loop
@@ -406,31 +427,44 @@ int main(int argc, char *argv[])
             if (!fork())
             { // this is the child process
                 close(pqb_fd);
+                close(cqbpipe[0]);
+                close(cqbpipe[1]);
                 char buffer[1024];
                 printf("From PQB\n");
-                if(send(newp_fd, "Hi PQB!\n", 9, 0) == -1)
+                if (send(newp_fd, "Hi PQB!\n", 9, 0) == -1)
                 {
                     perror("send");
                     continue;
                 }
                 read(pqbpipe[0], buffer, sizeof(buffer));
+                if (!strcmp(buffer, "GQ")) // Generate Questions
+                {
+                    if (send(newc_fd, "GQ", 3, 0) == -1)
+                        perror("send");
+                }
                 close(pqbpipe[0]);
                 close(pqbpipe[1]);
+                close(tmpipe[1]);
+                close(tmpipe[0]);
                 close(newp_fd);
                 exit(0);
             }
             close(newp_fd);
+            close(cqbpipe[0]);
+            close(cqbpipe[1]);
+            close(pqbpipe[0]);
+            close(pqbpipe[1]);
+            close(tmpipe[1]);
+            close(tmpipe[0]);
         }
     }
 
     while (1)
-    { // main accept() loop
-        printf("Listening for TM...\n");
+    {// Main port is 4125
+        memset(&user, 0, sizeof(user)); // Make sure user structure is empty
         tm_size = sizeof tm_addr;
-        int PID = 0;
+        FILE *fp;
         newtm_fd = accept(tm_fd, (struct sockaddr *)&tm_addr, &tm_size);
-        char bufferpy[100];
-        bool bufferflag = false;
         if (newtm_fd == -1)
         {
             perror("accept");
@@ -441,7 +475,6 @@ int main(int argc, char *argv[])
         if (!fork())
         { // this is the child process
             char *returnvalue;
-            //close(tm_fd);
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
             printf("sending data\n");
@@ -454,7 +487,7 @@ int main(int argc, char *argv[])
                 perror("send");
             if (recv(newtm_fd, password, sizeof(password), 0) == -1)
                 perror("recv");
-            username[strcspn(username, "\n")] = '\0';
+            username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
             username[strcspn(username, "\r")] = '\0';
             password[strcspn(password, "\n")] = '\0';
             password[strcspn(password, "\r")] = '\0';
@@ -464,55 +497,66 @@ int main(int argc, char *argv[])
             {
                 if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
                     perror("send");
-                returnvalue = "IL";
-                close(newtm_fd);
+                goto invalidsignin;
             }
             else if (loginValue == -2) // File is broken
             {
-                returnvalue = "NF";
-                close(tmpipe[1]);
+                goto nofile;
             }
             else if (loginValue == 1) // Invalid Password
             {
                 if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
                     perror("send");
-                returnvalue = "IL";
-                close(newtm_fd);
+                goto invalidsignin;
             }
-            printf("Opening user file..\n");
-            int loadvalue = loadUser(user.user_filename);
+
+            int loadvalue = loadUser();
             if (loadvalue == -1) // If file failed to open
             {
                 returnvalue = "NF";
             }
-            else if (loadvalue == -2) // If file is corrupted
-            {
-                returnvalue = "NF";
-            }
-            if (loadvalue == 0 && loginValue == 0)
+            else if (loadvalue == 0 && loginValue == 0)
             {
                 returnvalue = "YE";
             }
-            close(tmpipe[1]);
 
             if (!strcmp(returnvalue, "YE")) // Success
             {
                 close(newtm_fd);
-                printf("Closing connection with client...\n");
+                close(tmpipe[0]);
+                close(tmpipe[1]);
                 continue;
             }
             else if (!strcmp(returnvalue, "IL")) // Incorrect Login
             {
-                printf("Incorrect Login.");
+            invalidsignin:
                 close(newtm_fd);
+                close(tmpipe[0]);
+                close(tmpipe[1]);
                 continue;
             }
             else if (!strcmp(returnvalue, "NF")) // Bad / No File
             {
-                fixbrokenfile();
+            nofile:
+                printf("No file!\n");
+                fp = generatenewfile();
+                printf("called generate new file\n");
+                char *gq = "GQ";
+                write(cqbpipe[1], "GQ", 3);
+                printf("Generating questions from PQB...\n");
+                write(pqbpipe[1], "GQ", 2);
+                close(newtm_fd);
+                close(tmpipe[0]);
+                close(tmpipe[1]);
             }
         }
         close(newtm_fd);
+        close(cqbpipe[0]);
+        close(cqbpipe[1]);
+        close(pqbpipe[0]);
+        close(pqbpipe[1]);
+        close(tmpipe[1]);
+        close(tmpipe[0]);
     }
     return 0;
 }

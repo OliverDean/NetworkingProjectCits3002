@@ -1,4 +1,4 @@
-aaa
+a
 Which of the following is not a valid C variable name?
 A. int number;
 B. float rate;
@@ -6,7 +6,7 @@ C. int variable_count;
 D. int $main;
 D
 
-bbb
+b
 All keywords in C are in ____________
 A. LowerCase letters
 B. UpperCase letters
@@ -14,7 +14,7 @@ C. CamelCase letters
 D. None of the mentioned
 A
 
-ccc
+c
 Which of the following is true for variable names in C?
 A. They can contain alphanumeric characters as well as special characters
 B. It is not an error to declare a variable to be one of the keywords(like goto, static)
@@ -22,7 +22,7 @@ C. Variable names cannot start with a digit
 D. Variable can be of any length
 C
 
-ddd
+d
 Which is valid C expression?
 A. int my_num = 100,000;
 B. int my_num = 100000;
@@ -30,7 +30,7 @@ C. int my num = 1000;
 D. int $my_num = 10000;
 B
 
-eee
+e
 Which of the following cannot be a variable name in C?
 A. volatile
 B. true
@@ -38,6 +38,26 @@ C. friend
 D. export
 A
 
-fff
+f
 Write a function in C, that prints out 'Hello World!'.
 Hello World!
+g
+h
+i
+j
+k
+l
+m
+n
+o
+p
+q
+r
+s
+t
+u
+v
+w
+x
+y
+z
