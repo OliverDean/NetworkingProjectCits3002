@@ -50,12 +50,12 @@ int loadUser()
     user.total_score = 0;
     user.attempted = 0;
 
-    FILE *fp = fopen(user.user_filename, "r"); // Open user file
+    FILE *fp;
+    fp = fopen(user.user_filename, "r"); // Open user file
     if (fp == NULL)
     {
         printf("Attempted to open : %s\n", user.user_filename);
-        perror("fopen");
-        return -1;
+        fp = fopen(user.user_filename, "w+");
     }
 
     while ((linelen = getline(&line, &linesize, fp)) != -1)
@@ -103,6 +103,7 @@ int loadUser()
             QBcounter++;
         }
     }
+    fclose(fp);
 
     if (QBcounter == 10)
         return 0;
@@ -153,7 +154,7 @@ int login(char username[], char password[], char **filename)
         { // If strings equal (ignoring case-sensitive for username)
             printf("Usernames match\n");
             strcpy(temp, buf);
-            buf = strtok(NULL, ";x");
+            buf = strtok(NULL, ";");
             if (!strcmp(buf, password))
             { // If passwords equal (must be case-sensitive)
                 strcpy(user.password, buf);
@@ -250,7 +251,7 @@ int setupsocket(char *port)
 }
 
 // Will return file pointer to users cookie file
-FILE *generatenewfile()
+void generatenewfile()
 {
     printf("inside generate\n");
     char *line = NULL;
@@ -261,13 +262,15 @@ FILE *generatenewfile()
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     user.user_filename = randomstring;
     printf("new user id is: %s\n", user.user_filename);
-    FILE *fp = fopen(user.user_filename, "w"); // Create new user cookie file
     printf("Opening new files...\n");
-    FILE *up = fopen("users.txt", "r+");
+    printf("Opening users cookiefile %s...\n", user.user_filename);
+    FILE *fp = fopen(user.user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
         perror("fopen");
     }
+    printf("opening users file.\n");
+    FILE *up = fopen("users.txt", "r+");
     if (up == NULL)
     {
         perror("fopen");
@@ -284,25 +287,29 @@ FILE *generatenewfile()
             buf = strtok(NULL, ";");
             if (!strcmp(buf, user.password))
             {
+                printf("password match.\n");
                 buf = strtok(NULL, ";");
-                if (buf != NULL)
+                if (buf != NULL && strcmp(buf, user.user_filename))
                 { // If user has filename, re-write over it in the next step
                     printf("found user filename is: %s\n", buf);
                     remove(buf);
                     counter = (counter - strlen(buf)) - 1;
                 }
+                fflush(fp);
                 fseek(up, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
                 fprintf(up, "%s;", user.user_filename); // Add users cookie filename
                 fprintf(fp, "%s\n", user.username);     // Add users username to their own cookie file
-                fclose(fp);
+                fclose(up);
             }
-            else
+            else {
+                printf("file exists, overwriting.");
                 continue;
+            }
         }
         else
             continue;
     }
-    return fp;
+    printf("exiting generate\n");
 }
 
 int main(int argc, char *argv[])
@@ -378,6 +385,9 @@ int main(int argc, char *argv[])
                 // close(cqb_fd);
                 char commandbuffer[3];
                 char questionIDbuffer[9];
+                char filename[9];
+                char *buf;
+                FILE *ft;
                 printf("From CQB\n");
                 read(cqbpipe[0], commandbuffer, 3);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
@@ -391,6 +401,23 @@ int main(int argc, char *argv[])
                         perror("recv");
                     questionIDbuffer[8] = '\0';
                     printf("Questions recieved: %s\n", questionIDbuffer);
+                    read(cqbpipe[0], filename, sizeof(filename));
+                    user.user_filename = filename;
+                    printf("filename is: %s\n", user.user_filename);
+                    read(cqbpipe[0], user.username, sizeof(user.username));
+                    ft = fopen(user.user_filename, "w");
+                    if (ft == NULL)
+                    {
+                        perror("fopen");
+                    }
+                    printf("Opened file.\n");
+                    buf = strtok(questionIDbuffer, ";");
+                    fprintf(ft, "%s\n", user.username);
+                    for (int i = 0; i < 4; i++) {
+                        printf("writing to file.\n");
+                        fprintf(ft, "q;c;%s;---;\n", buf);
+                        buf = strtok(NULL, ";");
+                    }
                 }
                 close(cqbpipe[0]);
                 close(cqbpipe[1]);
@@ -540,11 +567,12 @@ int main(int argc, char *argv[])
             else if (!strcmp(returnvalue, "NF")) // Bad / No File
             {
             nofile:
-                printf("No file!\n");
-                fp = generatenewfile();
+                printf("No file or file corrupted!!\n");
+                generatenewfile();
                 printf("called generate new file\n");
-                char *gq = "GQ";
                 write(cqbpipe[1], "GQ", 3);
+                write(cqbpipe[1], user.user_filename, 9);
+                write(cqbpipe[1], user.username, sizeof(user.username));
                 printf("Generating questions from PQB...\n");
                 write(pqbpipe[1], "GQ", 2);
                 close(newtm_fd);
