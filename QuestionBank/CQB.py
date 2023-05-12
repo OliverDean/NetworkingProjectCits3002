@@ -2,6 +2,7 @@ import random
 import os
 import socket
 import string
+import time
 
 answered_questions_file = "answered_questions.txt"
 
@@ -31,17 +32,14 @@ def communicate_with_tm():
         if data.decode() == "GQ":
             print("generating questions\n")
             questions = generate_questions()
-            arraylength = len(questions)
-            for x in range(arraylength):
-                print(questions[x].encode())
-                s.send(questions[x].encode())
+            combined = ''.join(questions)
+            s.send(combined.encode())
 
     # Decode the received data and return it
     return data.decode()
 
 def generate_questions():
     questions = []
-    index = []
     for x in range(4): #generate 4 random questions
         flag = 0
         print(x)
@@ -61,7 +59,7 @@ def generate_questions():
             x -= 1
             continue
         questions.append(buffer)
-        index.append(buffer)
+        questions.append(';')
     return questions
 
 def grab_questionID(questionID):
