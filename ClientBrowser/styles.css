@@ -220,3 +220,7 @@ input[type="radio"]:focus + label {
   gap: 10px;
   align-items: center;
 }
+
+textarea {
+  width: 100%;
+}

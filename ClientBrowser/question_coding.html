@@ -13,23 +13,17 @@
       <!-- Short answer question module -->
       <h1>Short Answer Coding Question</h1>
       <form id="codingQuestionForm">
-        <p>What is the keyword used to declare a variable in JavaScript?</p>
         <div class="form-group">
-          <label for="codingAnswer">Answer:</label>
-          <input
-            type="text"
-            id="codingAnswer"
-            name="codingAnswer"
-            aria-label="Enter your answer"
-            required
-          />
-        </div>
+          <label for="codingAnswer"></label>
+            <!-- dynamically alocated coding questions -->
 
         <div class="navigation-buttons">
           <button type="button" class="prev-question">Previous Question</button>
+          <button type="submit" class="submit-answer">Submit Answer</button>
           <button type="button" class="next-question">Next Question</button>
         </div>
       </form>
     </div>
+    <script src="populateQuestionCoding.js"></script>
   </body>
 </html>
