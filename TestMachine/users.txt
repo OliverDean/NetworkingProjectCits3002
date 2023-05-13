@@ -1,5 +1,6 @@
-Joel;password;4r25w5i1;
-test;test;gj2urvjo;
-user;test;rm7jaehe;
-here;test;ff2vyig7;
-admin;admin;
+Joel;password;
+test;test;
+user;test;
+here;test;
+admin;admin;o6l352ym;
+new;user;

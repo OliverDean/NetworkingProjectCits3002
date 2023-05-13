@@ -12,28 +12,31 @@ PQB_PORT = 4126
 
 PQB = "PythonQuestionBank"
 
-def communicate_with_tm():
-    print("testing\n")
-    # Create a socket and connect to the TM server
+def connect_to_tm():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((TM_SERVER, PQB_PORT))
+        return s
+    
+def communicate_with_tm(s):
+    print("testing\n")
+    # Create a socket and connect to the TM server
+    s.connect((TM_SERVER, PQB_PORT))
 
-        print("connected\n")
-        os.listdir()
+    print("connected\n")
+    os.listdir()
 
-        # Send the question and answer to the TM server
-        #s.sendall(f"{question}\n{answer}".encode())
+    # Send the question and answer to the TM server
+    #s.sendall(f"{question}\n{answer}".encode())
 
-        # Receive the response from the TM server
-        data = s.recv(2)
-        print("recieved data ")
-        print(data.decode())
-        # Generate questions
-        if data.decode() == "GQ":
-            print("generating questions\n")
-            questions = generate_questions()
-            combined = ''.join(questions)
-            s.send(combined.encode())
+    # Receive the response from the TM server
+    data = None
+    data = s.recv(2)
+    # Generate questions
+    if data.decode() == "GQ":
+        print("generating questions\n")
+        questions = generate_questions()
+        combined = ''.join(questions)
+        s.send(combined.encode())
 
     # Decode the received data and return it
     return data.decode()
@@ -157,5 +160,4 @@ def main():
 
 
 if __name__ == "__main__":
-    #while 1:
     main()

@@ -25,9 +25,8 @@ def communicate_with_tm():
         #s.sendall(f"{question}\n{answer}".encode())
 
         # Receive the response from the TM server
+        data = None
         data = s.recv(2)
-        print("recieved data ")
-        print(data.decode())
         # Generate questions
         if data.decode() == "GQ":
             print("generating questions\n")
@@ -160,5 +159,4 @@ def main():
 
 
 if __name__ == "__main__":
-    #while 1:
     main()

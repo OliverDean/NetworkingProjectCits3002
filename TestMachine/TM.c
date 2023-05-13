@@ -53,19 +53,15 @@ int loadUser()
 
     FILE *fp;
     fp = fopen(user.user_filename, "r"); // Open user file
-    printf("user file: %s\n", user.user_filename);
     if (fp == NULL)
     {
-        printf("Attempted to open : %s\n", user.user_filename);
         fp = fopen(user.user_filename, "w+");
     }
 
     while ((linelen = getline(&line, &linesize, fp)) != -1)
     {
         buf = strtok(line, ";");
-        printf("Current line in loaduser() is %s\n", buf);
         if (!strcmp(buf, "//")) { // Comment line
-            printf("Comment line\n");
             continue;
         }
         buf[strcspn(buf, "\n")] = '\0';
@@ -78,10 +74,8 @@ int loadUser()
         else if (!strcmp(buf, "q"))
         {                            // question line
             buf = strtok(NULL, ";"); // QB its from
-            printf("QB its from: %s\n", buf);
             user.QB[QBcounter] = buf;
             buf = strtok(NULL, ";"); // QuestionID
-            printf("Question ID: %s\n", buf);
             user.QuestionID[QBcounter] = buf;
             buf = strtok(NULL, ";"); // Attempted marks
 
@@ -146,32 +140,24 @@ int login(char username[], char password[], char **filename)
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
-    printf("password:%s\n", password);
-    printf("Username: %s\n", username);
-
     FILE *fpa = fopen("users.txt", "r");
-    printf("Opening users text file\n");
 
     while ((linelen = getline(&line, &linesize, fpa)) != -1)
     {
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) // If comment line
             continue;
-        printf("Checking username...:%s\n", buf);
         if (!strcasecmp(buf, username))
         { // If strings equal (ignoring case-sensitive for username)
-            printf("Usernames match\n");
             strcpy(temp, buf);
             buf = strtok(NULL, ";");
             if (!strcmp(buf, password))
             { // If passwords equal (must be case-sensitive)
                 strcpy(user.password, buf);
                 strcpy(user.username, temp);
-                printf("Signed in!!!\n");
                 buf = strtok(NULL, ";");
                 if (buf == NULL)
                 {
-                    printf("User doesn't have cookiefile!\n");
                     return -2;
                 }
                 char *temp = malloc(1024);
@@ -182,7 +168,6 @@ int login(char username[], char password[], char **filename)
             }
             else
             {
-                printf("Incorrect Password\n");
                 return 1;
             }
         }
@@ -258,10 +243,9 @@ int setupsocket(char *port)
     return socketfd;
 }
 
-// Will return file pointer to users cookie file
+// Generates new cookie file for user, adds it
 void generatenewfile()
 {
-    printf("inside generate\n");
     char *line = NULL;
     char *buf;
     size_t linesize = 0;
@@ -269,15 +253,11 @@ void generatenewfile()
     int counter = -1;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     user.user_filename = randomstring;
-    printf("new user id is: %s\n", user.user_filename);
-    printf("Opening new files...\n");
-    printf("Opening users cookiefile %s...\n", user.user_filename);
     FILE *fp = fopen(user.user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
         perror("fopen");
     }
-    printf("opening users file.\n");
     FILE *up = fopen("users.txt", "r+");
     if (up == NULL)
     {
@@ -291,8 +271,6 @@ void generatenewfile()
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
         counter += (int)linelen;
-        printf("line length is: %ld\n", linelen);
-        printf("line is %s\n", line);
         fprintf(new, "%s", line);
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) { // If comment line
@@ -300,33 +278,26 @@ void generatenewfile()
         }
         else if (!strcasecmp(buf, user.username))
         { // Line we want
-            printf("found users username: %s\n", buf);
             buf = strtok(NULL, ";");
             if (!strcmp(buf, user.password))
             {
-                printf("password match.\n");
                 buf = strtok(NULL, ";");
                 if (buf && !buf[0])
                 { // If user has filename, re-write over it in the next step
-                    printf("found user filename is: %s\n", buf);
                     counter -= sizeof(buf);
                     remove(buf);
                 }
                 fseek(new, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
-                printf("moved pointer: %d characters\n", counter);
-                printf("Users username is: %s\n", user.user_filename);
                 fprintf(new, "%s;\n", user.user_filename); // Add users cookie filename
                 fprintf(fp, "%s;\n", user.username);     // Add users username to their own cookie file
             }
             else {
-                printf("password wrong\n");
                 continue;
             }
         }
         else
             continue;      
     }
-    printf("exiting generate\n");
     free(line);
     fclose(new);
     remove("users.txt");
@@ -362,11 +333,8 @@ int main(int argc, char *argv[])
     }
 
     cqb_fd = setupsocket(CQBPORT);
-    printf("CQB socket is: %d\n", cqb_fd);
     pqb_fd = setupsocket(PQBPORT);
-    printf("PQB socket is: %d\n", pqb_fd);
     tm_fd = setupsocket(TMPORT);
-    printf("TM socket is: %d\n", tm_fd);
     if (cqb_fd == -1)
     {
         printf("CQB server failed to bind!\n");
@@ -390,7 +358,6 @@ int main(int argc, char *argv[])
     { // child process
         close(pqbpipe[0]); // No need for QB's to communicate
         close(pqbpipe[1]);
-        printf("Listening for CQB..\n");
         while (1)
         { // main accept() loop
             cqb_size = sizeof cqb_addr;
@@ -400,7 +367,6 @@ int main(int argc, char *argv[])
                 perror("accept");
                 break;
             }
-            printf("Accepted connection from CQB!\n");
 
             if (!fork())
             { // this is the child process
@@ -409,11 +375,9 @@ int main(int argc, char *argv[])
                 char filename[9];
                 char *buf;
                 FILE *ft;
-                printf("From CQB\n");
                 read(cqbpipe[0], commandbuffer, 3);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    printf("attempting to generate questions...\n");
                     if (send(newc_fd, "GQ", 3, 0) == -1)
                         perror("send");
                     memset(commandbuffer, 0, sizeof(commandbuffer));
@@ -421,21 +385,16 @@ int main(int argc, char *argv[])
                     if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1)
                         perror("recv");
                     questionIDbuffer[8] = '\0';
-                    printf("Questions recieved: %s\n", questionIDbuffer);
                     read(cqbpipe[0], filename, sizeof(filename));
                     user.user_filename = filename;
-                    printf("filename is: %s\n", user.user_filename);
                     read(cqbpipe[0], user.username, sizeof(user.username));
                     ft = fopen(user.user_filename, "w");
                     if (ft == NULL)
                     {
                         perror("fopen");
                     }
-                    printf("Opened file.\n");
                     buf = strtok(questionIDbuffer, ";");
-                    fprintf(ft, "%s;\n", user.username);
                     for (int i = 0; i < 4; i++) {
-                        printf("writing to file.\n");
                         fprintf(ft, "q;c;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
@@ -463,7 +422,6 @@ int main(int argc, char *argv[])
         int questionsize;
         close(cqbpipe[0]); // No need for QB's to communicate
         close(cqbpipe[1]);
-        printf("Listening for PQB...\n");
         while (1)
         { // main accept() loop
             pqb_size = sizeof pqb_addr;
@@ -473,7 +431,6 @@ int main(int argc, char *argv[])
                 perror("accept");
                 break;
             }
-            printf("Accepted connection from PQB!\n");
 
             if (!fork())
             { // this is the child process
@@ -482,11 +439,9 @@ int main(int argc, char *argv[])
                 char filename[9];
                 char *buf;
                 FILE *ft;
-                printf("From PQB\n");
                 read(pqbpipe[0], commandbuffer, 3);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    printf("attempting to generate questions...\n");
                     if (send(newp_fd, "GQ", 3, 0) == -1)
                         perror("send");
                     memset(commandbuffer, 0, sizeof(commandbuffer));
@@ -494,20 +449,16 @@ int main(int argc, char *argv[])
                     if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1)
                         perror("recv");
                     questionIDbuffer[12] = '\0';
-                    printf("Questions recieved: %s\n", questionIDbuffer);
                     read(pqbpipe[0], filename, sizeof(filename));
                     user.user_filename = filename;
-                    printf("filename is: %s\n", user.user_filename);
                     read(pqbpipe[0], user.username, sizeof(user.username));
                     ft = fopen(user.user_filename, "a");
                     if (ft == NULL)
                     {
                         perror("fopen");
                     }
-                    printf("Opened file.\n");
                     buf = strtok(questionIDbuffer, ";");
                     for (int i = 0; i < 6; i++) {
-                        printf("writing to file.\n");
                         fprintf(ft, "q;python;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
@@ -539,17 +490,14 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
-        printf("Accepted connection!\n");
 
         if (!fork())
         { // this is the child process
             char *returnvalue;
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
-            printf("sending data\n");
             if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
                 perror("send");
-            printf("Waiting for data.\n");
             if (recv(newtm_fd, username, sizeof(username), 0) == -1)
                 perror("recv");
             if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
@@ -589,7 +537,7 @@ int main(int argc, char *argv[])
                 returnvalue = "YE";
             }
 
-            if (!strcmp(returnvalue, "YE")) // Success
+            if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
             {
                 close(newtm_fd);
                 close(tmpipe[0]);
@@ -607,15 +555,11 @@ int main(int argc, char *argv[])
             else if (!strcmp(returnvalue, "NF")) // Bad / No File
             {
             nofile:
-                printf("No file or file corrupted!!\n");
                 generatenewfile();
-                printf("called generate new file\n");
-                printf("Generating questions from PQB...\n");
                 write(cqbpipe[1], "GQ", 3);
                 write(cqbpipe[1], user.user_filename, 9);
                 write(cqbpipe[1], user.username, sizeof(user.username));
                 recv(cqbpipe[0], acceptchar, sizeof(acceptchar), 0);
-                printf("Generating questions from PQB...\n");
                 write(pqbpipe[1], "GQ", 3);
                 write(pqbpipe[1], user.user_filename, 9);
                 write(pqbpipe[1], user.username, sizeof(user.username));
