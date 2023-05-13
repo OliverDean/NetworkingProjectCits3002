@@ -241,8 +241,6 @@ int setupsocket(char *port)
 
 void fixbrokenfile()
 {
-    printf("NF tag\n");
-    printf("Helping user: %s\n", user.username);
     char *randomstring = randomStringGenerator();
     user.user_filename = randomstring;
     FILE *fp = fopen(user.user_filename, "w");
@@ -307,7 +305,30 @@ char* loginPage()
     return returnString;
 }
 
-int main(int argc, char *argv[], char **envp)
+void setUser(char *buffer, char username[32], char password[32])
+{
+        char *pch;
+        pch = strtok(buffer, " ? = &");
+        char *previous = pch;
+        while (pch != NULL) 
+        {
+            printf("%s\n", pch); 
+            pch=strtok(NULL, " ? = &");
+            if (strcmp(previous, "username") == 0)
+            {
+                strcpy(username, pch);
+            }
+
+            if (strcmp(previous, "password") == 0)
+            {
+                strcpy(password, pch);
+                break;
+            }
+            previous = pch;
+        }
+}
+
+int main(int argc, char *argv[])
 {
     char username[32] = {0};
     char password[32] = {0};
@@ -446,50 +467,16 @@ int main(int argc, char *argv[], char **envp)
         printf("Accepted connection!\n");
 
         char buffer[2500];
-
         send(newtm_fd, loginPage(), strlen(loginPage()), 0);
         recv(newtm_fd, buffer, sizeof(buffer),0);
-
-        printf("buffer:\n%s\n", buffer);
-
-        // if (url != NULL)
-        // {
-        //     char *username = strtok(url, "&");
-        //     username = strtok(url, "=");
-        //     while (username != NULL)
-        //     {
-        //         username = strtok(NULL, "=");
-        //         printf("USERNAME3 %s\n", username);
-        //     }
-        // }
-
-
+        setUser(buffer, username, password);
 
         if (!fork())
         { // this is the child process
             char *returnvalue;
-            memset(username, 0, sizeof(username));
-            memset(password, 0, sizeof(password));
+            // memset(username, 0, sizeof(username));
+            // memset(password, 0, sizeof(password));
             //close(tm_fd);
-            // char *qptr;
-            // if (recv(newtm_fd, env_value, sizeof(env_value), 0) != 0)
-            // {
-            //      if (getenv("QUERY_STRING") == qptr)
-            // {
-            //     char buffer[256];
-            //     char *token;
-            //     strncpy(buffer, qptr, 255);
-
-            //     token = strtok(buffer, "&");
-            //     sscanf(token, "username=%s", username);
-            //     printf("The username entered was %s.\n", username);
-            // }
-            // else{
-            //     printf("the query wasn't right...");
-            // }
-
-            // }
-        
             // printf("sending data\n");
             // if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
             //     perror("send");
