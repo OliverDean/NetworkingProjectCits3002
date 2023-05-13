@@ -2,5 +2,5 @@ Joel;password;
 test;test;
 user;test;3wom9ahh;
 here;test;
-admin;admin;
+admin;admin;cg5dog3h;
 new;user;2b9tu08s;
