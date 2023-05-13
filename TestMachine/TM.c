@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define TMPORT "4125"
 #define PQBPORT "4126"
@@ -123,6 +124,7 @@ char *randomStringGenerator()
 {
     static char stringSet[] = "abcdefghijklmnopqrstuvwxyz1234567890";
     char *randomstring = malloc(sizeof(char *) * 8 + 1);
+    srand(time(NULL));
 
     for (int i = 0; i <= 8; i++)
     {
@@ -264,7 +266,7 @@ void generatenewfile()
     char *buf;
     size_t linesize = 0;
     ssize_t linelen;
-    int counter = 0;
+    int counter = -1;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     user.user_filename = randomstring;
     printf("new user id is: %s\n", user.user_filename);
@@ -281,12 +283,21 @@ void generatenewfile()
     {
         perror("fopen");
     }
+    FILE *new = fopen("temptemptemp", "w");
+    if (new == NULL)
+    {
+        perror("fopen");
+    }
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
         counter += (int)linelen;
+        printf("line length is: %ld\n", linelen);
+        printf("line is %s\n", line);
+        fprintf(new, "%s", line);
         buf = strtok(line, ";");
-        if (!strcmp(buf, "//")) // If comment line
+        if (!strcmp(buf, "//")) { // If comment line
             continue;
+        }
         else if (!strcasecmp(buf, user.username))
         { // Line we want
             printf("found users username: %s\n", buf);
@@ -295,27 +306,32 @@ void generatenewfile()
             {
                 printf("password match.\n");
                 buf = strtok(NULL, ";");
-                if (buf != NULL && strcmp(buf, user.user_filename))
+                if (buf && !buf[0])
                 { // If user has filename, re-write over it in the next step
                     printf("found user filename is: %s\n", buf);
+                    counter -= sizeof(buf);
                     remove(buf);
-                    counter = (counter - strlen(buf)) - 1;
                 }
-                fflush(fp);
-                fseek(up, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
-                fprintf(up, "%s;", user.user_filename); // Add users cookie filename
-                fprintf(fp, "%s\n", user.username);     // Add users username to their own cookie file
-                fclose(up);
+                fseek(new, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
+                printf("moved pointer: %d characters\n", counter);
+                printf("Users username is: %s\n", user.user_filename);
+                fprintf(new, "%s;\n", user.user_filename); // Add users cookie filename
+                fprintf(fp, "%s;\n", user.username);     // Add users username to their own cookie file
             }
             else {
-                printf("file exists, overwriting.");
+                printf("password wrong\n");
                 continue;
             }
         }
         else
-            continue;
+            continue;      
     }
     printf("exiting generate\n");
+    free(line);
+    fclose(new);
+    remove("users.txt");
+    rename("temptemptemp", "users.txt");
+    fclose(up);
 }
 
 int main(int argc, char *argv[])

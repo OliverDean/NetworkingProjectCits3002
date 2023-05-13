@@ -1,5 +1,5 @@
-//; User Database with each line representing another student with this structure: 
-//; 'username' 'password' 'userCookieFile'
-Joel;password;abcde1234;
+Joel;password;4r25w5i1;
+test;test;gj2urvjo;
+user;test;rm7jaehe;
+here;test;ff2vyig7;
 admin;admin;
-user;test;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;t9jhfhkm;
