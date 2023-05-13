@@ -16,13 +16,16 @@ CQB = "CQuestionBank"
 
 def communicate_with_tm(s):
     # Receive the response from the TM server
-    
-    data = s.recv(2)
-    if data.decode() == "GQ":
-        print("generating questions\n")
-        questions = generate_questions()
-        combined = ''.join(questions)
-        s.send(combined.encode())
+    while true:
+        data = s.recv(2)
+        if data.decode() == "GQ":
+            print("generating questions\n")
+            questions = generate_questions()
+            combined = ''.join(questions)
+            s.send(combined.encode())
+        elif data.decode() == "exit":
+            print("Exit command received. Closing connection.")
+            break
             
     # Decode the received data and return it
 
