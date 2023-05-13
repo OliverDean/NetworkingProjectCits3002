@@ -65,7 +65,6 @@ int loadUser(char *filename)
             continue;
         else if ((strcasecmp(buf, user.username)) && (strcasecmp(buf, "q")))
         { // If username in file doesn't match signed in user
-            printf("Incorrect username in file!\nUsername in file: %s\nUsername given:%s\n", buf, user.username);
             return -2;
         }
         else if (!strcmp(buf, "q"))
@@ -135,21 +134,18 @@ int login(char username[], char password[], char **filename)
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
-    printf("password:%s\n", password);
     printf("Username: %s\n", username);
+    printf("password:%s\n", password);
 
     FILE *fpa = fopen("users.txt", "r");
-    printf("Opening users text file\n");
 
     while ((linelen = getline(&line, &linesize, fpa)) != -1)
     {
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) // If comment line
             continue;
-        printf("Checking username...:%s\n", buf);
         if (!strcasecmp(buf, username))
         { // If strings equal (ignoring case-sensitive for username)
-            printf("Usernames match\n");
             strcpy(temp, buf);
             buf = strtok(NULL, ";x");
             if (!strcmp(buf, password))
@@ -160,7 +156,6 @@ int login(char username[], char password[], char **filename)
                 buf = strtok(NULL, ";");
                 if (buf == NULL)
                 {
-                    printf("User doesn't have cookiefile!\n");
                     return -2;
                 }
                 char *temp = malloc(1024);
@@ -171,7 +166,6 @@ int login(char username[], char password[], char **filename)
             }
             else
             {
-                printf("Incorrect Password\n");
                 return 1;
             }
         }
@@ -266,10 +260,8 @@ void fixbrokenfile()
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
-    printf("Grabbing line...\n");
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
-        printf("Current line is: %s\n", line);
         counter += (int)linelen;
         buf = strtok(line, ";");
         if (!strcmp(buf, "//")) // If comment line
@@ -283,10 +275,7 @@ void fixbrokenfile()
                 remove(buf);
                 counter = counter - strlen(buf);
             }
-            printf("Username matched\n");
-            printf("Went over %d characters\n", counter);
             fseek(up, counter, SEEK_SET);
-            printf("Moved file pointer...\n");
             fprintf(up, "%s;", user.user_filename);
             if (fp == NULL)
             {
@@ -308,19 +297,17 @@ char* loginPage()
     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/login.html", "r");
     // error checking
     if (fp == NULL) {perror("html file");}
-
-    char line[128];
-    char html_data[5000] = {'\0'};
-    
+    char header[5000] = "HTTP/1.1 200 OK\r\n\n";
+    char line[180];
     while (fgets(line, sizeof(line), fp))
     {
-        returnString = strcat(html_data, line);
+        returnString = strcat(header, line);
     };
+    printf("length of sending data: %lu\n", strlen(header));
     return returnString;
-
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], char **envp)
 {
     char username[32] = {0};
     char password[32] = {0};
@@ -457,26 +444,62 @@ int main(int argc, char *argv[])
         }
         
         printf("Accepted connection!\n");
-        char *loginReturn = loginPage();
 
-        send(newtm_fd, loginReturn, sizeof(loginReturn), 0);
+        char buffer[2500];
+
+        send(newtm_fd, loginPage(), strlen(loginPage()), 0);
+        recv(newtm_fd, buffer, sizeof(buffer),0);
+
+        printf("buffer:\n%s\n", buffer);
+
+        // if (url != NULL)
+        // {
+        //     char *username = strtok(url, "&");
+        //     username = strtok(url, "=");
+        //     while (username != NULL)
+        //     {
+        //         username = strtok(NULL, "=");
+        //         printf("USERNAME3 %s\n", username);
+        //     }
+        // }
+
+
 
         if (!fork())
         { // this is the child process
             char *returnvalue;
-            //close(tm_fd);
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
-            printf("sending data\n");
-            if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
-                perror("send");
-            printf("Waiting for data.\n");
-            if (recv(newtm_fd, username, sizeof(username), 0) == -1)
-                perror("recv");
-            if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
-                perror("send");
-            if (recv(newtm_fd, password, sizeof(password), 0) == -1)
-                perror("recv");
+            //close(tm_fd);
+            // char *qptr;
+            // if (recv(newtm_fd, env_value, sizeof(env_value), 0) != 0)
+            // {
+            //      if (getenv("QUERY_STRING") == qptr)
+            // {
+            //     char buffer[256];
+            //     char *token;
+            //     strncpy(buffer, qptr, 255);
+
+            //     token = strtok(buffer, "&");
+            //     sscanf(token, "username=%s", username);
+            //     printf("The username entered was %s.\n", username);
+            // }
+            // else{
+            //     printf("the query wasn't right...");
+            // }
+
+            // }
+        
+            // printf("sending data\n");
+            // if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
+            //     perror("send");
+            // printf("Waiting for data.\n");
+            // if (recv(newtm_fd, username, sizeof(username), 0) == -1)
+            //     perror("recv");
+            // if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
+            //     perror("send");
+            // if (recv(newtm_fd, password, sizeof(password), 0) == -1)
+            //     perror("recv");
             username[strcspn(username, "\n")] = '\0';
             username[strcspn(username, "\r")] = '\0';
             password[strcspn(password, "\n")] = '\0';
@@ -521,6 +544,7 @@ int main(int argc, char *argv[])
             if (!strcmp(returnvalue, "YE")) // Success
             {
                 // here is successful user login
+
                 close(newtm_fd);
                 printf("Closing connection with client...\n");
                 continue;

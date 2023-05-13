@@ -39,11 +39,13 @@ int main(int argc, char *argv[])
     else
     {
         printf("connected to the server..\n");
-        char request[] = "GET /login.html HTTP/1.1\r\n\r\n";
-        char response[15];
+        // char request[] = "GET /login.html HTTP/1.1\r\n\r\n";
+        char response[5000];
 
         // send(sockfd, request, sizeof(request), 0);
-       int  reader = recv(sockfd, &response, sizeof(response), 0);
+       int reader = recv(sockfd, &response, sizeof(response), 0);
+       FILE *fp;
+
     }
     return 0;
 }
