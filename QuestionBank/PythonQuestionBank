@@ -79,8 +79,8 @@ D. All of the mentioned
 C
 
 k
-Write a function in Python, that prints out 'Hello World!'.
-Hello World!
+write a function and return the total of two input number"
+((5, 10), 15, lambda a, b: a + b)
 l
 m
 n
