@@ -14,12 +14,6 @@ PQB = "PythonQuestionBank"
 CQB = "CQuestionBank"
 
 def communicate_with_tm(s):
-    # Create a socket and connect to the TM server
-    os.listdir()
-
-    # Send the question and answer to the TM server
-    #s.sendall(f"{question}\n{answer}".encode())
-
     # Receive the response from the TM server
     data = None
     data = s.recv(2)
