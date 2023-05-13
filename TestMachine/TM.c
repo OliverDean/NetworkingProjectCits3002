@@ -474,19 +474,6 @@ int main(int argc, char *argv[])
         if (!fork())
         { // this is the child process
             char *returnvalue;
-            // memset(username, 0, sizeof(username));
-            // memset(password, 0, sizeof(password));
-            //close(tm_fd);
-            // printf("sending data\n");
-            // if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
-            //     perror("send");
-            // printf("Waiting for data.\n");
-            // if (recv(newtm_fd, username, sizeof(username), 0) == -1)
-            //     perror("recv");
-            // if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
-            //     perror("send");
-            // if (recv(newtm_fd, password, sizeof(password), 0) == -1)
-            //     perror("recv");
             username[strcspn(username, "\n")] = '\0';
             username[strcspn(username, "\r")] = '\0';
             password[strcspn(password, "\n")] = '\0';
