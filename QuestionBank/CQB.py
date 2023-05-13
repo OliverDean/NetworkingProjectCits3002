@@ -7,7 +7,7 @@ import time
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.243.118"
+TM_SERVER = "192.168.0.195"
 CQB_PORT = 4127
 
 CQB = "CQuestionBank.txt"
@@ -25,9 +25,8 @@ def communicate_with_tm():
         #s.sendall(f"{question}\n{answer}".encode())
 
         # Receive the response from the TM server
+        data = None
         data = s.recv(2)
-        print("recieved data ")
-        print(data.decode())
         # Generate questions
         if data.decode() == "GQ":
             print("generating questions\n")
