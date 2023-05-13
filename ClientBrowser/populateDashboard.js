@@ -27,6 +27,11 @@ window.onload = function() {
 
 
 
+/**
+ * Determine the status of a question based on the attempts string
+ * @param {string} attempts - The attempts string for a question
+ * @returns {string} - The status of the question: 'correct', 'try', or 'incorrect'
+ */
 function getStatus(attempts) {
     if (attempts.includes('Y')) return 'correct';
     if (attempts.includes('-')) return 'try';
@@ -37,6 +42,11 @@ function getQuestionType(type) {
     return type === 't' ? 'coding' : 'multi';
 }
 
+/**
+ * Count the number of attempts made on a question
+ * @param {string} attempts - The attempts string for a question
+ * @returns {number} - The number of attempts made on the question
+ */
 function getAttemptCount(attempts) {
     var count = 0;
     for (var i = 0; i < attempts.length; i++) {
@@ -47,7 +57,13 @@ function getAttemptCount(attempts) {
     return count;
 }
 
+/**
+ * Parse the questions from the file data
+ * @param {string} fileData - The file data to be parsed
+ */
 function parseQuestions(fileData) {
+    //lines in the form of
+    //'q - QB its from -'m/t' - q type, questionID, - attempt data - 'Y' for correct, '-' for try, 'N' for incorrect
     var lines = fileData.split('\n');
     var questions = [];
     var userName = lines[0].split(';')[0];
@@ -75,6 +91,9 @@ function parseQuestions(fileData) {
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
         questionLink.href = `question_${item.questionType}.html`;
+        //dynamically alocate the question number makes new html file for each question
+        //questionLink.href = `question_${item.questionType}${index + 1}.html`;
+
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';
@@ -94,6 +113,8 @@ function parseQuestions(fileData) {
             questionAttempt.textContent = 'Not yet Attempted';
         else
             questionAttempt.textContent = `Attempted ${item.attempt} times`;
+
+        //Build the web page with the data
 
         questionLink.appendChild(questionNumber);
         questionLink.appendChild(questionType);
