@@ -3,6 +3,7 @@ import os
 import socket
 import string
 import sys, getopt
+import select
 
 answered_questions_file = "answered_questions.txt"
 
@@ -15,17 +16,15 @@ CQB = "CQuestionBank"
 
 def communicate_with_tm(s):
     # Receive the response from the TM server
-    data = None
+    
     data = s.recv(2)
-    # Generate questions
     if data.decode() == "GQ":
         print("generating questions\n")
         questions = generate_questions()
         combined = ''.join(questions)
         s.send(combined.encode())
-
+            
     # Decode the received data and return it
-    return data.decode()
 
 def generate_questions():
     questions = []
@@ -90,7 +89,7 @@ def main():
         elif opt == '-c': #c
             print("conencting to c")
             s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s)
+            communicate_with_tm(s) 
     
 if __name__ == "__main__":
     main()

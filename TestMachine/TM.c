@@ -356,15 +356,10 @@ int main(int argc, char *argv[])
     // CQB is port 4127
     if (!fork())
     { // child process
-        close(pqbpipe[0]); // No need for QB's to communicate
-        close(pqbpipe[1]);
         while (1)
-        { // main accept() loop
-            char commandbuffer[3] = {0};
-            char questionIDbuffer[9] = {0};
-            char filename[9] = {0};
-            char *buf;
-            FILE *ft;
+        {
+            close(pqbpipe[0]); // No need for QB's to communicate
+            close(pqbpipe[1]);
             cqb_size = sizeof cqb_addr;
             newc_fd = accept(cqb_fd, (struct sockaddr *)&cqb_addr, &cqb_size);
             if (newc_fd == -1)
@@ -373,36 +368,50 @@ int main(int argc, char *argv[])
                 break;
             }
             printf("accepted connection from CQB\n");
-            read(cqbpipe[0], commandbuffer, 3);
-            if (!strcmp(commandbuffer, "GQ")) // Generate Questions
-            {
-                if (send(newc_fd, "GQ", 3, 0) == -1)
-                    perror("send");
-                memset(commandbuffer, 0, sizeof(commandbuffer));
-                sleep(0.01);
-                if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1)
-                    perror("recv");
-                questionIDbuffer[8] = '\0';
-                read(cqbpipe[0], filename, sizeof(filename));
-                user.user_filename = filename;
-                read(cqbpipe[0], user.username, sizeof(user.username));
-                ft = fopen(user.user_filename, "w");
-                if (ft == NULL)
+            while (1)
+            { // main accept() loop
+                char commandbuffer[3] = {0};
+                char questionIDbuffer[9] = {0};
+                char filename[9] = {0};
+                char *buf;
+                char GQ[strlen("GQ")];
+                memcpy(GQ, "GQ", strlen(GQ));
+                FILE *ft;
+                read(cqbpipe[0], commandbuffer, 3);
+                if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    perror("fopen");
+                    if (send(newc_fd, "GQ", 3, 0) == -1) {
+                        perror("send");
+                        break;
+                    }
+                    memset(commandbuffer, 0, sizeof(commandbuffer));
+                    sleep(0.01);
+                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1) {
+                        perror("recv");
+                        break;
+                    }
+                    questionIDbuffer[8] = '\0';
+                    read(cqbpipe[0], filename, sizeof(filename));
+                    user.user_filename = filename;
+                    read(cqbpipe[0], user.username, sizeof(user.username));
+                    ft = fopen(user.user_filename, "w");
+                    if (ft == NULL)
+                    {
+                        perror("fopen");
+                    }
+                    buf = strtok(questionIDbuffer, ";");
+                    for (int i = 0; i < 4; i++) {
+                        fprintf(ft, "q;c;%s;---;\n", buf);
+                        buf = strtok(NULL, ";");
+                    }
+                    write(cqbpipe[1], "YE", 2);
                 }
-                buf = strtok(questionIDbuffer, ";");
-                for (int i = 0; i < 4; i++) {
-                    fprintf(ft, "q;c;%s;---;\n", buf);
-                    buf = strtok(NULL, ";");
-                }
-                write(cqbpipe[1], "YE", 2);
             }
+            close(newc_fd);
             close(cqbpipe[0]);
             close(cqbpipe[1]);
             close(tmpipe[1]);
             close(tmpipe[0]);
-            close(newc_fd);
         }
     }
 
@@ -411,16 +420,10 @@ int main(int argc, char *argv[])
     // PQB is port 4126
     if (!fork())
     { // child process
-        int questionsize;
-        close(cqbpipe[0]); // No need for QB's to communicate
-        close(cqbpipe[1]);
-        while (1)
-        { // main accept() loop
-            char commandbuffer[3] = {0};
-            char questionIDbuffer[13] = {0};
-            char filename[9] = {0};
-            char *buf;
-            FILE *ft;
+        while (1) 
+        {
+            close(cqbpipe[0]); // No need for QB's to communicate
+            close(cqbpipe[1]);
             pqb_size = sizeof pqb_addr;
             newp_fd = accept(pqb_fd, (struct sockaddr *)&pqb_addr, &pqb_size);
             if (newp_fd == -1)
@@ -428,35 +431,52 @@ int main(int argc, char *argv[])
                 perror("accept");
                 break;
             }
-            read(pqbpipe[0], commandbuffer, 3);
-            if (!strcmp(commandbuffer, "GQ")) // Generate Questions
-            {
-                if (send(newp_fd, "GQ", 3, 0) == -1)
-                    perror("send");
-                memset(commandbuffer, 0, sizeof(commandbuffer));
-                sleep(0.01);
-                if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1)
-                    perror("recv");
-                questionIDbuffer[12] = '\0';
-                read(pqbpipe[0], filename, sizeof(filename));
-                user.user_filename = filename;
-                read(pqbpipe[0], user.username, sizeof(user.username));
-                ft = fopen(user.user_filename, "a");
-                if (ft == NULL)
+            printf("accepted connection from PQB\n");
+            while (1)
+            { // main accept() loop
+                char commandbuffer[3] = {0};
+                char questionIDbuffer[13] = {0};
+                char filename[9] = {0};
+                char GQ[strlen("GQ")];
+                memcpy(GQ, "GQ", strlen(GQ));
+                char *buf;
+                FILE *ft;
+                read(pqbpipe[0], commandbuffer, 3);
+                if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    perror("fopen");
-                }
-                buf = strtok(questionIDbuffer, ";");
-                for (int i = 0; i < 6; i++) {
-                    fprintf(ft, "q;python;%s;---;\n", buf);
-                    buf = strtok(NULL, ";");
+                    printf("sending gq\n");
+                    if (send(newp_fd, "GQ", 3, 0) == -1) {
+                        perror("send");
+                        break;
+                    }
+                    printf("waiting for words\n");
+                    memset(commandbuffer, 0, sizeof(commandbuffer));
+                    sleep(0.01);
+                    if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1) {
+                        perror("recv");
+                        break;
+                    }
+                    questionIDbuffer[12] = '\0';
+                    read(pqbpipe[0], filename, sizeof(filename));
+                    user.user_filename = filename;
+                    read(pqbpipe[0], user.username, sizeof(user.username));
+                    ft = fopen(user.user_filename, "a");
+                    if (ft == NULL)
+                    {
+                        perror("fopen");
+                    }
+                    buf = strtok(questionIDbuffer, ";");
+                    for (int i = 0; i < 6; i++) {
+                        fprintf(ft, "q;python;%s;---;\n", buf);
+                        buf = strtok(NULL, ";");
+                    }
                 }
             }
+            close(newp_fd);
             close(pqbpipe[0]);
             close(pqbpipe[1]);
             close(tmpipe[1]);
             close(tmpipe[0]);
-            close(newp_fd);
         }
     }
 
