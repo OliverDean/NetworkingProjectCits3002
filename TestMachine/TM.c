@@ -293,7 +293,6 @@ char* loginPage()
     char *returnString;
     FILE *fp;
     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/login.html", "r");
-    // error checking
     if (fp == NULL) {perror("html file");}
     char header[5000] = "HTTP/1.1 200 OK\r\n\n";
     char line[180];
@@ -301,8 +300,23 @@ char* loginPage()
     {
         returnString = strcat(header, line);
     };
-    printf("length of sending data: %lu\n", strlen(header));
     return returnString;
+}
+
+char *questionDashboard()
+{
+    char *returnString;
+    FILE *fp;
+    fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
+    if (fp == NULL) {perror("html file");}
+    char header[5000] = "HTTP/1.1 200 OK\r\n\n";
+    char line[180];
+    while (fgets(line, sizeof(line), fp))
+    {
+        returnString = strcat(header, line);
+    };
+    return returnString;
+
 }
 
 void setUser(char *buffer, char username[32], char password[32])
@@ -518,14 +532,12 @@ int main(int argc, char *argv[])
             if (!strcmp(returnvalue, "YE")) // Success
             {
                 // here is successful user login
-
                 close(newtm_fd);
                 printf("Closing connection with client...\n");
                 continue;
             }
             else if (!strcmp(returnvalue, "IL")) // Incorrect Login
             {
-                printf("Incorrect Login.");
                 close(newtm_fd);
                 continue;
             }
