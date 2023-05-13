@@ -2,7 +2,7 @@ import random
 import os
 import socket
 import string
-import time
+import sys, getopt
 
 answered_questions_file = "answered_questions.txt"
 
