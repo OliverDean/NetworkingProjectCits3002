@@ -300,6 +300,9 @@ void generatenewfile()
     rename("temptemptemp", "users.txt");
 }
 
+// Code for both question banks
+// They will share the same code, however pipe[] will be different for both QB's
+// Will automatically break out once connection is broken.
 void QuestionBanks(int QBsocket, int pipe[2])
 {
     while (1)
@@ -310,6 +313,7 @@ void QuestionBanks(int QBsocket, int pipe[2])
         if (read(pipe[0], commandbuffer, 3) == -1) // Wait for instructions
         {
             perror("read");
+            break;
         }
         if (!strcmp(commandbuffer, "GQ")) // Generate Questions
         {
