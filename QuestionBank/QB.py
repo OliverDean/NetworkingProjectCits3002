@@ -38,6 +38,7 @@ def communicate_with_tm(s, version):
                 combined = ''.join(questions)
                 print(combined)
                 s.send(combined.encode())
+                exit(0)
             elif decoded_data == "ex":
                 print("Exit command received. Closing connection.")
                 break

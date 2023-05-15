@@ -282,7 +282,8 @@ void generatenewfile()
             if (!strcmp(buf, user.password))
             {
                 buf = strtok(NULL, ";");
-                if (!buf)
+                printf("password correct, buf is currently: %s\n", buf);
+                if (buf != NULL)
                 { // If user has filename, re-write over it in the next step
                     printf("Found additional user cookie file: %s\n", buf);
                     counter -= sizeof(buf);
