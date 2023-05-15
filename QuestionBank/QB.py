@@ -19,7 +19,9 @@ CQBCount = 4
 def communicate_with_tm(s, version):
     # Receive the response from the TM server
     while True:
+        print("waiting for TM")
         data = s.recv(2)
+        print(data)
         pid = os.fork()
         if pid < 0:
             print("Fork failed")

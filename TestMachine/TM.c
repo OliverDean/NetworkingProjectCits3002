@@ -247,7 +247,7 @@ int setupsocket(char *port)
 void generatenewfile()
 {
     char *line = NULL;
-    char *buf;
+    char *buf = NULL;
     size_t linesize = 0;
     ssize_t linelen;
     int counter = -1;
@@ -283,7 +283,7 @@ void generatenewfile()
             {
                 buf = strtok(NULL, ";");
                 printf("password correct, buf is currently: %s\n", buf);
-                if (buf != NULL)
+                if (buf != NULL && strcmp(buf, "\n"))
                 { // If user has filename, re-write over it in the next step
                     printf("Found additional user cookie file: %s\n", buf);
                     counter -= sizeof(buf);
@@ -301,6 +301,7 @@ void generatenewfile()
             continue;      
     }
     free(line);
+
     fclose(new);
     remove("users.txt");
     rename("temptemptemp", "users.txt");
@@ -503,7 +504,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        printf("testing\n");
         if (!fork())
         { // this is the child process
             char *returnvalue;
