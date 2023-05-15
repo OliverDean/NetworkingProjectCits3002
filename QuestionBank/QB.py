@@ -52,6 +52,8 @@ def communicate_with_tm(s, version):
                     answer += chunk.decode()
             elif decoded_data == "PQ": #return question info from questionID
                 exit(0)
+            elif decoded_data == "IQ": #return answer from questionID
+                exit(0)
             elif decoded_data == "ex":
                 print("Exit command received. Closing connection.")
                 break
