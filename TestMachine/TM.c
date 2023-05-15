@@ -528,6 +528,7 @@ int main(int argc, char *argv[])
             while (1)
             {
                 char *returnvalue;
+                char httprequestvalue[2];
                 memset(username, 0, sizeof(username));
                 memset(password, 0, sizeof(password));
                 if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
@@ -579,6 +580,9 @@ int main(int argc, char *argv[])
                     /*
                     Here is where the HTTP requests will come through once the user is signed in
                     In here all user data is loaded into the structure
+                    You will need to send off the 3 byte (2 bytes sent to the python QB cause C has null terminated strings) to the correct QB through the pipes
+                    cqbpipe[1] is the input for the C QB, cqbpipe[0] is the output from the C QB
+                    pqbpipe[1] is the input for the Python QB, pqbpipe[1] is the output from the Python QB
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
                     close(newtm_fd);
