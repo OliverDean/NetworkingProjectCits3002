@@ -55,7 +55,7 @@ int loadUser()
     fp = fopen(user.user_filename, "r"); // Open user file
     if (fp == NULL)
     {
-        fp = fopen(user.user_filename, "w+");
+        return -1;
     }
 
     while ((linelen = getline(&line, &linesize, fp)) != -1)
@@ -282,8 +282,9 @@ void generatenewfile()
             if (!strcmp(buf, user.password))
             {
                 buf = strtok(NULL, ";");
-                if (buf && !buf[0])
+                if (!buf)
                 { // If user has filename, re-write over it in the next step
+                    printf("Found additional user cookie file: %s\n", buf);
                     counter -= sizeof(buf);
                     remove(buf);
                 }
@@ -303,6 +304,7 @@ void generatenewfile()
     remove("users.txt");
     rename("temptemptemp", "users.txt");
     fclose(up);
+    fclose(fp);
 }
 
 int main(int argc, char *argv[])
@@ -374,27 +376,29 @@ int main(int argc, char *argv[])
                 char questionIDbuffer[9] = {0};
                 char filename[9] = {0};
                 char *buf;
-                char GQ[strlen("GQ")];
-                memcpy(GQ, "GQ", strlen(GQ));
                 FILE *ft;
                 read(cqbpipe[0], commandbuffer, 3);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    if (send(newc_fd, "GQ", 3, 0) == -1) {
+                    if (send(newc_fd, "GQ", 2, 0) == -1) {
                         perror("send");
                         break;
                     }
                     memset(commandbuffer, 0, sizeof(commandbuffer));
                     sleep(0.01);
-                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1) {
+                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1) {
                         perror("recv");
                         break;
                     }
+                    printf("words got\n");
                     questionIDbuffer[8] = '\0';
+                    printf("words: %s\n", questionIDbuffer);
                     read(cqbpipe[0], filename, sizeof(filename));
+                    printf("filename: %s\n", filename);
                     user.user_filename = filename;
                     read(cqbpipe[0], user.username, sizeof(user.username));
-                    ft = fopen(user.user_filename, "w");
+                    printf("username: %s\n", user.username);
+                    ft = fopen(user.user_filename, "a");
                     if (ft == NULL)
                     {
                         perror("fopen");
@@ -405,6 +409,7 @@ int main(int argc, char *argv[])
                         buf = strtok(NULL, ";");
                     }
                     write(cqbpipe[1], "YE", 2);
+                    fclose(ft);
                 }
             }
             close(newc_fd);
@@ -437,29 +442,31 @@ int main(int argc, char *argv[])
                 char commandbuffer[3] = {0};
                 char questionIDbuffer[13] = {0};
                 char filename[9] = {0};
-                char GQ[strlen("GQ")];
-                memcpy(GQ, "GQ", strlen(GQ));
                 char *buf;
                 FILE *ft;
                 read(pqbpipe[0], commandbuffer, 3);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
                     printf("sending gq\n");
-                    if (send(newp_fd, "GQ", 3, 0) == -1) {
+                    if (send(newp_fd, "GQ", 2, 0) == -1) {
                         perror("send");
                         break;
                     }
                     printf("waiting for words\n");
                     memset(commandbuffer, 0, sizeof(commandbuffer));
                     sleep(0.01);
-                    if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer), 0) == -1) {
+                    if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1) {
                         perror("recv");
                         break;
                     }
+                    printf("words got\n");
                     questionIDbuffer[12] = '\0';
+                    printf("words: %s\n", questionIDbuffer);
                     read(pqbpipe[0], filename, sizeof(filename));
+                    printf("filename: %s\n", filename);
                     user.user_filename = filename;
                     read(pqbpipe[0], user.username, sizeof(user.username));
+                    printf("username: %s\n", user.username);
                     ft = fopen(user.user_filename, "a");
                     if (ft == NULL)
                     {
@@ -470,6 +477,8 @@ int main(int argc, char *argv[])
                         fprintf(ft, "q;python;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
+                    write(pqbpipe[1], "YE", 2);
+                    fclose(ft);
                 }
             }
             close(newp_fd);
@@ -493,6 +502,7 @@ int main(int argc, char *argv[])
             break;
         }
 
+        printf("testing\n");
         if (!fork())
         { // this is the child process
             char *returnvalue;

@@ -8,38 +8,49 @@ import select
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.0.195"
+TM_SERVER = "192.168.243.118"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
 CQB = "CQuestionBank"
+PQBCount = 6
+CQBCount = 4
 
-def communicate_with_tm(s):
+def communicate_with_tm(s, version):
     # Receive the response from the TM server
     while True:
         data = s.recv(2)
-        if not data:
-            print("Connection closed by server.")
+        pid = os.fork()
+        if pid < 0:
+            print("Fork failed")
             break
-        decoded_data = data.decode()
-        if decoded_data == "GQ":
-            print("generating questions\n")
-            questions = generate_questions()
-            combined = ''.join(questions)
-            s.send(combined.encode())
-        elif decoded_data == "exit":
-            print("Exit command received. Closing connection.")
-            break
+        if pid > 0:
+            if not data:
+                break
         else:
-            print("Invalid command received. Closing connection.")
-            break
+            if not data:
+                print("Connection closed by server.")
+                break
+            decoded_data = data.decode()
+            if decoded_data == "GQ":
+                print("generating questions\n")
+                questions = generate_questions(version)
+                combined = ''.join(questions)
+                print(combined)
+                s.send(combined.encode())
+            elif decoded_data == "ex":
+                print("Exit command received. Closing connection.")
+                break
+            else:
+                print("Invalid command received. Closing connection.")
+                break
             
     # Decode the received data and return it
 
-def generate_questions():
+def generate_questions(count):
     questions = []
     generated_ids = set()
-    while len(questions) < 4: #generate 4 random questions
+    while len(questions) < count * 2: #generate counted random questions
         questionID = random.choice(string.ascii_lowercase) #generate random question ID
         print("question id is:\n")
         print(questionID)
@@ -133,11 +144,11 @@ def main():
         if opt == '-p': #python
             print("conencting to python")
             s = connect_to_tm(PQB_PORT)
-            communicate_with_tm(s)
+            communicate_with_tm(s, PQBCount)
         elif opt == '-c': #c
             print("conencting to c")
             s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s) 
+            communicate_with_tm(s, CQBCount) 
     
 if __name__ == "__main__":
     main()
