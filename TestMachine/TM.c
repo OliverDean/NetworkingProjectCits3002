@@ -115,6 +115,8 @@ int loadUser()
         return -1;
 }
 
+// Generates random string for user cookie file
+// Returns said string
 char *randomStringGenerator()
 {
     static char stringSet[] = "abcdefghijklmnopqrstuvwxyz1234567890";
@@ -178,15 +180,6 @@ int login(char username[], char password[], char **filename)
     return -1;
 }
 
-void handle_sigchld(int sig)
-{
-    int saved_errno = errno;
-    while (waitpid((pid_t)(-1), 0, WNOHANG) > 0)
-    {
-    }
-    errno = saved_errno;
-}
-
 // Returns 0 on success, -1 on failure
 // Returns socket file descriptor
 int setupsocket(char *port)
@@ -244,7 +237,8 @@ int setupsocket(char *port)
     return socketfd;
 }
 
-// Generates new cookie file for user, adds it
+// Generates new cookie file for user, adds it to users.txt
+// Re-creates users.txt to avoid over-writing user data
 void generatenewfile()
 {
     char *line = NULL;
@@ -304,12 +298,11 @@ void generatenewfile()
             continue;
     }
     free(line);
-
     fclose(new);
-    remove("users.txt");
-    rename("temptemptemp", "users.txt");
     fclose(up);
     fclose(fp);
+    remove("users.txt");
+    rename("temptemptemp", "users.txt");
 }
 
 int main(int argc, char *argv[])
@@ -352,7 +345,6 @@ int main(int argc, char *argv[])
         printf("TM server failed to bind!\n");
         return -1;
     }
-    printf("waiting for connections...\n");
 
     // This is the C Question Bank loop
     // CQB is port 4127
@@ -417,7 +409,18 @@ int main(int argc, char *argv[])
                         buf = strtok(NULL, ";");
                     }
                     fclose(ft);
-                    printf("Finished with C looping back!\n");
+                }
+                else if (!strcmp(commandbuffer, "AN"))
+                { // If QB's need to answer questions
+                    printf("meant to answer here..\n");
+                }
+                else if (!strcmp(commandbuffer, "IQ"))
+                { // If QB's need to return the answer to a question
+                    prntf("meant to get answer here...\n");
+                }
+                else if (!strcmp(commandbuffer, "PQ"))
+                { // If QB's need to return the answer from questionID
+                    printf("meant to return the question here...\n");
                 }
             }
             close(newc_fd);
@@ -454,8 +457,8 @@ int main(int argc, char *argv[])
                 {
                     perror("read");
                 }
-                if (!strcmp(commandbuffer, "GQ")) // Generate Questions
-                {
+                if (!strcmp(commandbuffer, "GQ"))
+                { // If QB's need to generate questions
                     if (send(newp_fd, "GQ", 2, 0) == -1)
                     {
                         perror("send");
@@ -487,6 +490,18 @@ int main(int argc, char *argv[])
                         buf = strtok(NULL, ";");
                     }
                     fclose(ft);
+                }
+                else if (!strcmp(commandbuffer, "AN"))
+                { // If QB's need to answer questions
+                    printf("meant to answer here..\n");
+                }
+                else if (!strcmp(commandbuffer, "IQ"))
+                { // If QB's need to return the answer to a question
+                    prntf("meant to get answer here...\n");
+                }
+                else if (!strcmp(commandbuffer, "PQ"))
+                { // If QB's need to return the answer from questionID
+                    printf("meant to return the question here...\n");
                 }
             }
             close(newp_fd);
@@ -529,7 +544,7 @@ int main(int argc, char *argv[])
                 password[strcspn(password, "\r")] = '\0';
 
                 int loginValue = login(username, password, &user.user_filename);
-                if (loginValue == -1) // Inavlid Username (doesn't exist)
+                if (loginValue == -1) // Invalid Username (doesn't exist)
                 {
                     if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
                         perror("send");
@@ -553,13 +568,19 @@ int main(int argc, char *argv[])
                 {
                     returnvalue = "NF";
                 }
-                else if (loadvalue == 0 && loginValue == 0)
+                else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
                     returnvalue = "YE";
                 }
 
                 if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
                 {
+                usersignedin:
+                    /*
+                    Here is where the HTTP requests will come through once the user is signed in
+                    In here all user data is loaded into the structure
+                    After the user closes the browser make sure the connection is broken (goes through below close() steps)
+                    */
                     close(newtm_fd);
                     close(cqbpipe[1]);
                     close(cqbpipe[0]);
@@ -576,8 +597,7 @@ int main(int argc, char *argv[])
                 {
                 nofile:
                     generatenewfile();
-                    printf("Generated new file\n");
-                    if (write(cqbpipe[1], "GQ", 3) == -1)
+                    if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
                     {
                         perror("write");
                     }
@@ -589,7 +609,7 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    if (write(pqbpipe[1], "GQ", 3) == -1)
+                    if (write(pqbpipe[1], "GQ", 3) == -1) // Generate questions from Python QB
                     {
                         perror("write");
                     }
@@ -601,13 +621,7 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    close(newtm_fd);
-                    close(cqbpipe[1]);
-                    close(cqbpipe[0]);
-                    close(pqbpipe[1]);
-                    close(pqbpipe[0]);
-                    close(pqbpipe[1]);
-                    break;
+                    goto usersignedin;
                 }
             }
         }
