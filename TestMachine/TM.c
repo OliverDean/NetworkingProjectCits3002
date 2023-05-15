@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
     struct addrinfo cqb_addr, pqb_addr, tm_addr;
     int cqb_fd, pqb_fd, tm_fd;
     int newc_fd, newp_fd, newtm_fd;
-    int cqbpipe[2], pqbpipe[2], tmpipe[2];
+    int cqbpipe[2], pqbpipe[2];
 
     if (pipe(cqbpipe) == -1)
     {
@@ -326,11 +326,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
     if (pipe(pqbpipe) == -1)
-    {
-        perror("pipe");
-        exit(1);
-    }
-    if (pipe(tmpipe) == -1)
     {
         perror("pipe");
         exit(1);
@@ -379,7 +374,9 @@ int main(int argc, char *argv[])
                 char filename[9] = {0};
                 char *buf;
                 FILE *ft;
+                printf("Waiting for buffer in C\n");
                 read(cqbpipe[0], commandbuffer, 3);
+                printf("Command buffer in c is: %s\n", commandbuffer);
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
                     if (send(newc_fd, "GQ", 2, 0) == -1) {
@@ -410,15 +407,13 @@ int main(int argc, char *argv[])
                         fprintf(ft, "q;c;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
-                    write(cqbpipe[1], "YE", 2);
                     fclose(ft);
+                    printf("Finished with C looping back!\n");
                 }
             }
             close(newc_fd);
             close(cqbpipe[0]);
             close(cqbpipe[1]);
-            close(tmpipe[1]);
-            close(tmpipe[0]);
         }
     }
 
@@ -479,15 +474,12 @@ int main(int argc, char *argv[])
                         fprintf(ft, "q;python;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
-                    write(pqbpipe[1], "YE", 2);
                     fclose(ft);
                 }
             }
             close(newp_fd);
             close(pqbpipe[0]);
             close(pqbpipe[1]);
-            close(tmpipe[1]);
-            close(tmpipe[0]);
         }
     }
 
@@ -553,45 +545,44 @@ int main(int argc, char *argv[])
             if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
             {
                 close(newtm_fd);
-                close(tmpipe[0]);
-                close(tmpipe[1]);
-                continue;
+
+
+                close(cqbpipe[1]);
+                close(cqbpipe[0]);
+                close(pqbpipe[1]);
+                close(pqbpipe[0]);
+                close(pqbpipe[1]);
+                exit(0);
             }
             else if (!strcmp(returnvalue, "IL")) // Incorrect Login
             {
             invalidsignin:
                 close(newtm_fd);
-                close(tmpipe[0]);
-                close(tmpipe[1]);
                 continue;
             }
             else if (!strcmp(returnvalue, "NF")) // Bad / No File
             {
             nofile:
                 generatenewfile();
-                write(cqbpipe[1], "GQ", 3);
+                printf("Generated new file\n");
+                if (write(cqbpipe[1], "GQ", 3) == -1) {
+                    perror("write");
+                }
                 write(cqbpipe[1], user.user_filename, 9);
                 write(cqbpipe[1], user.username, sizeof(user.username));
-                recv(cqbpipe[0], acceptchar, sizeof(acceptchar), 0);
                 write(pqbpipe[1], "GQ", 3);
                 write(pqbpipe[1], user.user_filename, 9);
                 write(pqbpipe[1], user.username, sizeof(user.username));
                 close(newtm_fd);
-                close(tmpipe[0]);
                 close(cqbpipe[1]);
                 close(cqbpipe[0]);
                 close(pqbpipe[1]);
                 close(pqbpipe[0]);
                 close(pqbpipe[1]);
+                exit(0);
             }
         }
         close(newtm_fd);
-        close(cqbpipe[0]);
-        close(cqbpipe[1]);
-        close(pqbpipe[0]);
-        close(pqbpipe[1]);
-        close(tmpipe[1]);
-        close(tmpipe[0]);
     }
     return 0;
 }
