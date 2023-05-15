@@ -34,12 +34,16 @@ def communicate_with_tm(s, version):
                 print("Connection closed by server.")
                 break
             decoded_data = data.decode()
-            if decoded_data == "GQ":
+            if decoded_data == "GQ": #Generate questions
                 print("generating questions\n")
                 questions = generate_questions(version)
                 combined = ''.join(questions)
                 print(combined)
                 s.send(combined.encode())
+                exit(0)
+            elif decoded_data == "AN": #Receive Answer and return if correct
+                exit(0)
+            elif decoded_data == "PQ": #return question info from questionID
                 exit(0)
             elif decoded_data == "ex":
                 print("Exit command received. Closing connection.")
