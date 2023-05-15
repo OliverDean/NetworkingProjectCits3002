@@ -1,4 +1,5 @@
-a
+1
+mcq
 Which of the following is not a valid C variable name?
 A. int number;
 B. float rate;
@@ -6,7 +7,8 @@ C. int variable_count;
 D. int $main;
 D
 
-b
+2
+mcq
 All keywords in C are in ____________
 A. LowerCase letters
 B. UpperCase letters
@@ -14,7 +16,8 @@ C. CamelCase letters
 D. None of the mentioned
 A
 
-c
+3
+mcq
 Which of the following is true for variable names in C?
 A. They can contain alphanumeric characters as well as special characters
 B. It is not an error to declare a variable to be one of the keywords(like goto, static)
@@ -22,7 +25,8 @@ C. Variable names cannot start with a digit
 D. Variable can be of any length
 C
 
-d
+4
+mcq
 Which is valid C expression?
 A. int my_num = 100,000;
 B. int my_num = 100000;
@@ -30,7 +34,8 @@ C. int my num = 1000;
 D. int $my_num = 10000;
 B
 
-e
+5
+mcq
 Which of the following cannot be a variable name in C?
 A. volatile
 B. true
@@ -38,26 +43,38 @@ C. friend
 D. export
 A
 
-f
+6
+programchallenge
 write a function and return the total of two input number
-("5", "10"), "15\n", "int main(){int a=5; int b=10; printf(\"%d\", a+b); return 0;}"
-g
-h
-i
-j
-k
-l
-m
-n
-o
-p
-q
-r
-s
-t
-u
-v
-w
-x
-y
-z
+Input:("5", "10")
+Output:"15"
+
+7
+programchallenge
+Write a function that returns the product of two input numbers.
+Input:("20", "15")
+Output:"5"
+
+8
+programchallenge
+Write a function that returns the difference of two input numbers.
+Input:("20", "15")
+Output:"5"
+
+9
+programchallenge
+Write a function that returns the quotient of two input numbers.
+Input:("100", "20")
+Output:"5"
+
+10
+programchallenge
+Write a function that returns the remainder of two input numbers.
+Input:("10", "3")
+Output:"1"
+
+11
+programchallenge
+Write a function that squares an input number.
+Input:("5")
+Output:"25"
