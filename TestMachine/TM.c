@@ -61,7 +61,8 @@ int loadUser()
     while ((linelen = getline(&line, &linesize, fp)) != -1)
     {
         buf = strtok(line, ";");
-        if (!strcmp(buf, "//")) { // Comment line
+        if (!strcmp(buf, "//"))
+        { // Comment line
             continue;
         }
         buf[strcspn(buf, "\n")] = '\0';
@@ -273,7 +274,8 @@ void generatenewfile()
         counter += (int)linelen;
         fprintf(new, "%s", line);
         buf = strtok(line, ";");
-        if (!strcmp(buf, "//")) { // If comment line
+        if (!strcmp(buf, "//"))
+        { // If comment line
             continue;
         }
         else if (!strcasecmp(buf, user.username))
@@ -289,16 +291,17 @@ void generatenewfile()
                     counter -= sizeof(buf);
                     remove(buf);
                 }
-                fseek(new, counter, SEEK_SET);           // Move up file pointer to end of line (after users password)
+                fseek(new, counter, SEEK_SET);             // Move up file pointer to end of line (after users password)
                 fprintf(new, "%s;\n", user.user_filename); // Add users cookie filename
-                fprintf(fp, "%s;\n", user.username);     // Add users username to their own cookie file
+                fprintf(fp, "%s;\n", user.username);       // Add users username to their own cookie file
             }
-            else {
+            else
+            {
                 continue;
             }
         }
         else
-            continue;      
+            continue;
     }
     free(line);
 
@@ -374,36 +377,42 @@ int main(int argc, char *argv[])
                 char filename[9] = {0};
                 char *buf;
                 FILE *ft;
-                printf("Waiting for buffer in C\n");
-                read(cqbpipe[0], commandbuffer, 3);
-                printf("Command buffer in c is: %s\n", commandbuffer);
+                if (read(cqbpipe[0], commandbuffer, 3) == -1)
+                {
+                    perror("read");
+                }
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    if (send(newc_fd, "GQ", 2, 0) == -1) {
+                    if (send(newc_fd, "GQ", 2, 0) == -1)
+                    {
                         perror("send");
                         break;
                     }
                     memset(commandbuffer, 0, sizeof(commandbuffer));
                     sleep(0.01);
-                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1) {
+                    if (recv(newc_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1)
+                    {
                         perror("recv");
                         break;
                     }
-                    printf("words got\n");
                     questionIDbuffer[8] = '\0';
-                    printf("words: %s\n", questionIDbuffer);
-                    read(cqbpipe[0], filename, sizeof(filename));
-                    printf("filename: %s\n", filename);
+                    if (read(cqbpipe[0], filename, sizeof(filename)) == -1)
+                    {
+                        perror("read");
+                    }
                     user.user_filename = filename;
-                    read(cqbpipe[0], user.username, sizeof(user.username));
-                    printf("username: %s\n", user.username);
+                    if (read(cqbpipe[0], user.username, sizeof(user.username)) == -1)
+                    {
+                        perror("read");
+                    }
                     ft = fopen(user.user_filename, "a");
                     if (ft == NULL)
                     {
                         perror("fopen");
                     }
                     buf = strtok(questionIDbuffer, ";");
-                    for (int i = 0; i < 4; i++) {
+                    for (int i = 0; i < 4; i++)
+                    {
                         fprintf(ft, "q;c;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
@@ -422,7 +431,7 @@ int main(int argc, char *argv[])
     // PQB is port 4126
     if (!fork())
     { // child process
-        while (1) 
+        while (1)
         {
             close(cqbpipe[0]); // No need for QB's to communicate
             close(cqbpipe[1]);
@@ -441,36 +450,39 @@ int main(int argc, char *argv[])
                 char filename[9] = {0};
                 char *buf;
                 FILE *ft;
-                read(pqbpipe[0], commandbuffer, 3);
+                if (read(pqbpipe[0], commandbuffer, 3) == -1)
+                {
+                    perror("read");
+                }
                 if (!strcmp(commandbuffer, "GQ")) // Generate Questions
                 {
-                    printf("sending gq\n");
-                    if (send(newp_fd, "GQ", 2, 0) == -1) {
+                    if (send(newp_fd, "GQ", 2, 0) == -1)
+                    {
                         perror("send");
                         break;
                     }
-                    printf("waiting for words\n");
                     memset(commandbuffer, 0, sizeof(commandbuffer));
                     sleep(0.01);
-                    if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1) {
+                    if (recv(newp_fd, questionIDbuffer, sizeof(questionIDbuffer) - 1, 0) == -1)
+                    {
                         perror("recv");
                         break;
                     }
-                    printf("words got\n");
                     questionIDbuffer[12] = '\0';
-                    printf("words: %s\n", questionIDbuffer);
-                    read(pqbpipe[0], filename, sizeof(filename));
-                    printf("filename: %s\n", filename);
+                    if (read(pqbpipe[0], filename, sizeof(filename)) == -1)
+                    {
+                        perror("read");
+                    }
                     user.user_filename = filename;
                     read(pqbpipe[0], user.username, sizeof(user.username));
-                    printf("username: %s\n", user.username);
                     ft = fopen(user.user_filename, "a");
                     if (ft == NULL)
                     {
                         perror("fopen");
                     }
                     buf = strtok(questionIDbuffer, ";");
-                    for (int i = 0; i < 6; i++) {
+                    for (int i = 0; i < 6; i++)
+                    {
                         fprintf(ft, "q;python;%s;---;\n", buf);
                         buf = strtok(NULL, ";");
                     }
@@ -484,7 +496,7 @@ int main(int argc, char *argv[])
     }
 
     while (1)
-    {// Main port is 4125
+    {                                   // Main port is 4125
         memset(&user, 0, sizeof(user)); // Make sure user structure is empty
         tm_size = sizeof tm_addr;
         FILE *fp;
@@ -498,88 +510,105 @@ int main(int argc, char *argv[])
 
         if (!fork())
         { // this is the child process
-            char *returnvalue;
-            memset(username, 0, sizeof(username));
-            memset(password, 0, sizeof(password));
-            if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
-                perror("send");
-            if (recv(newtm_fd, username, sizeof(username), 0) == -1)
-                perror("recv");
-            if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
-                perror("send");
-            if (recv(newtm_fd, password, sizeof(password), 0) == -1)
-                perror("recv");
-            username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
-            username[strcspn(username, "\r")] = '\0';
-            password[strcspn(password, "\n")] = '\0';
-            password[strcspn(password, "\r")] = '\0';
-
-            int loginValue = login(username, password, &user.user_filename);
-            if (loginValue == -1) // Inavlid Username (doesn't exist)
+            while (1)
             {
-                if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
+                char *returnvalue;
+                memset(username, 0, sizeof(username));
+                memset(password, 0, sizeof(password));
+                if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
                     perror("send");
-                goto invalidsignin;
-            }
-            else if (loginValue == -2) // File is broken
-            {
-                goto nofile;
-            }
-            else if (loginValue == 1) // Invalid Password
-            {
-                if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
+                if (recv(newtm_fd, username, sizeof(username), 0) == -1)
+                    perror("recv");
+                if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
                     perror("send");
-                goto invalidsignin;
-            }
+                if (recv(newtm_fd, password, sizeof(password), 0) == -1)
+                    perror("recv");
+                username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+                username[strcspn(username, "\r")] = '\0';
+                password[strcspn(password, "\n")] = '\0';
+                password[strcspn(password, "\r")] = '\0';
 
-            int loadvalue = loadUser();
-            if (loadvalue == -1) // If file failed to open
-            {
-                returnvalue = "NF";
-            }
-            else if (loadvalue == 0 && loginValue == 0)
-            {
-                returnvalue = "YE";
-            }
-
-            if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
-            {
-                close(newtm_fd);
-
-
-                close(cqbpipe[1]);
-                close(cqbpipe[0]);
-                close(pqbpipe[1]);
-                close(pqbpipe[0]);
-                close(pqbpipe[1]);
-                exit(0);
-            }
-            else if (!strcmp(returnvalue, "IL")) // Incorrect Login
-            {
-            invalidsignin:
-                close(newtm_fd);
-                continue;
-            }
-            else if (!strcmp(returnvalue, "NF")) // Bad / No File
-            {
-            nofile:
-                generatenewfile();
-                printf("Generated new file\n");
-                if (write(cqbpipe[1], "GQ", 3) == -1) {
-                    perror("write");
+                int loginValue = login(username, password, &user.user_filename);
+                if (loginValue == -1) // Inavlid Username (doesn't exist)
+                {
+                    if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
+                        perror("send");
+                    returnvalue = "IL";
+                    goto invalidsignin;
                 }
-                write(cqbpipe[1], user.user_filename, 9);
-                write(cqbpipe[1], user.username, sizeof(user.username));
-                write(pqbpipe[1], "GQ", 3);
-                write(pqbpipe[1], user.user_filename, 9);
-                write(pqbpipe[1], user.username, sizeof(user.username));
-                close(newtm_fd);
-                close(cqbpipe[1]);
-                close(cqbpipe[0]);
-                close(pqbpipe[1]);
-                close(pqbpipe[0]);
-                close(pqbpipe[1]);
-                exit(0);
+                else if (loginValue == -2) // File is broken
+                {
+                    goto nofile;
+                }
+                else if (loginValue == 1) // Invalid Password
+                {
+                    if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
+                        perror("send");
+                    returnvalue = "IL";
+                    goto invalidsignin;
+                }
+
+                int loadvalue = loadUser();
+                if (loadvalue == -1) // If file failed to open
+                {
+                    returnvalue = "NF";
+                }
+                else if (loadvalue == 0 && loginValue == 0)
+                {
+                    returnvalue = "YE";
+                }
+
+                if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
+                {
+                    close(newtm_fd);
+                    close(cqbpipe[1]);
+                    close(cqbpipe[0]);
+                    close(pqbpipe[1]);
+                    close(pqbpipe[0]);
+                    close(pqbpipe[1]);
+                    break;
+                }
+                else if (!strcmp(returnvalue, "IL")) // Incorrect Login
+                {
+                invalidsignin:
+                }
+                else if (!strcmp(returnvalue, "NF")) // Bad / No File
+                {
+                nofile:
+                    generatenewfile();
+                    printf("Generated new file\n");
+                    if (write(cqbpipe[1], "GQ", 3) == -1)
+                    {
+                        perror("write");
+                    }
+                    if (write(cqbpipe[1], user.user_filename, 9) == -1)
+                    {
+                        perror("write");
+                    }
+                    if (write(cqbpipe[1], user.username, sizeof(user.username)) == -1)
+                    {
+                        perror("write");
+                    }
+                    if (write(pqbpipe[1], "GQ", 3) == -1)
+                    {
+                        perror("write");
+                    }
+                    if (write(pqbpipe[1], user.user_filename, 9) == -1)
+                    {
+                        perror("write");
+                    }
+                    if (write(pqbpipe[1], user.username, sizeof(user.username)) == -1)
+                    {
+                        perror("write");
+                    }
+                    close(newtm_fd);
+                    close(cqbpipe[1]);
+                    close(cqbpipe[0]);
+                    close(pqbpipe[1]);
+                    close(pqbpipe[0]);
+                    close(pqbpipe[1]);
+                    break;
+                }
             }
         }
         close(newtm_fd);
