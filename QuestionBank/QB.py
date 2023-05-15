@@ -41,8 +41,15 @@ def communicate_with_tm(s, version):
                 print(combined)
                 s.send(combined.encode())
                 exit(0)
-            elif decoded_data == "AN": #Receive Answer and return if correct
-                exit(0)
+            elif decoded_data == "AN": # Receive Answer and return if correct
+                    # Receive the size of the answer
+                answer_size = int(s.recv(200).decode())
+                received_bytes = 0
+                answer = ''
+                while received_bytes < answer_size:
+                    chunk = s.recv(answer_size - received_bytes)
+                    received_bytes += len(chunk)
+                    answer += chunk.decode()
             elif decoded_data == "PQ": #return question info from questionID
                 exit(0)
             elif decoded_data == "ex":
