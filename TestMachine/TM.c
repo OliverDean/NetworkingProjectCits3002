@@ -536,7 +536,12 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
-
+        /* // THIS IS A TEST HTTP SERVER (ENTER LOCALHOST:4125 IN BROWSER)
+        char buffer[3000];
+        read(newtm_fd, buffer, 3000);
+        char *test = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+        write(newtm_fd, test, strlen(test));
+        */
         switch (fork())
         {
         case -1:
