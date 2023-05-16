@@ -23,8 +23,8 @@ def communicate_with_tm(s, version):
         commands = {
             "GQ": generate_questions(s, RQB),
             "AN": receive_answer(s),
-            "PQ": recv_id_and_return_question_info(s, RQB),
-            "IQ": send_answer(s, RQB),
+            "PQ": recv_id_and_return_question_info(s, QBS),
+            "IQ": send_answer(s, QBS),
         }
 
         while True:
@@ -48,32 +48,20 @@ def communicate_with_tm(s, version):
     thread.start()
 
 def generate_questions(s, question_dict):
-    # Include a timestamp in the filename to make it unique
-    timestamp = int(time.time())
-    filename = f'questions_{timestamp}.txt'
-    with open(filename, 'w') as f:
-        for id, question_data in question_dict.items():
-            # Write only the question id to file
-            f.write(f"Question ID: {id}\n")
-    # Send the file
-    send_file(s, filename)
+        # Join the question IDs with a semicolon
+        question_ids = ";".join(str(id) for id in question_dict.keys())
+        # Encode the string to bytes (required for sending via socket)
+        question_ids = question_ids.encode()
+        # Send the question IDs
+        send_data(s, question_ids)
 
-def send_file(s, filename):
-    # Get the file size
-    filesize = os.path.getsize(filename)
-
-    # Send the file size
-    s.sendall(struct.pack('!i', filesize))
-
-    # Send the file
-    with open(filename, 'rb') as f:
-        while True:
-            # Read up to 1024 bytes from the file
-            bytes_read = f.read(1024)
-            if not bytes_read:
-                # We're done reading the file
-                break
-            s.sendall(bytes_read)
+def send_data(s, data):
+        # Get the data size
+        data_size = len(data)
+        # Send the data size
+        s.sendall(struct.pack('!i', data_size))
+        # Send the data
+        s.sendall(data)
 
 def receive_answer(s):
     # Receive the length of the answer
@@ -206,9 +194,7 @@ def get_random_questions(question_dict, num_questions):
     question_ids = list(question_dict.keys())
     random_question_ids = random.sample(question_ids, num_questions)
 
-    random_questions = {}
-    for new_id, old_id in enumerate(random_question_ids, start=1):
-        random_questions[new_id] = question_dict[old_id]
+    random_questions = {qid: question_dict[qid] for qid in random_question_ids}
 
     return random_questions
 
