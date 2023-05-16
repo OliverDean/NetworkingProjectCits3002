@@ -293,6 +293,7 @@ void generatenewfile()
             continue;
     }
     free(line);
+    free(buf);
     fclose(new);
     fclose(up);
     fclose(fp);
@@ -308,8 +309,6 @@ void QuestionBanks(int QBsocket, int pipe[2])
     while (1)
     {
         char commandbuffer[3] = {0};
-        char *buf;
-        FILE *ft;
         if (read(pipe[0], commandbuffer, 3) == -1) // Wait for instructions
         {
             perror("read");
@@ -317,17 +316,18 @@ void QuestionBanks(int QBsocket, int pipe[2])
         }
         if (!strcmp(commandbuffer, "GQ")) // Generate Questions
         {
-            char questionIDbuffer[9] = {0};
+            int temp = 0;
+            char questionIDbuffer[32] = {0};
             char filename[9] = {0};
+            char *buf = NULL;
             if (send(QBsocket, "GQ", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            if (recv(QBsocket, questionIDbuffer, sizeof(questionIDbuffer) - 1, MSG_WAITALL) == -1) // Wait for random questionID's
+            if (recv(QBsocket, questionIDbuffer, 32, MSG_WAITALL) == -1) // Wait for random questionID's
             {
                 perror("recv");
             }
-            questionIDbuffer[8] = '\0';                          // Make sure it is null terminated
             if (read(pipe[0], filename, sizeof(filename)) == -1) // Send data to parent
             {
                 perror("read");
@@ -337,7 +337,7 @@ void QuestionBanks(int QBsocket, int pipe[2])
             {
                 perror("read");
             }
-            ft = fopen(user.user_filename, "a"); // Open file in append mode
+            FILE *ft = fopen(user.user_filename, "a"); // Open file in append mode
             if (ft == NULL)
             {
                 perror("fopen");
@@ -429,6 +429,9 @@ void QuestionBanks(int QBsocket, int pipe[2])
             printf("%s\n", questionBuf);
         }
     }
+    shutdown(QBsocket, SHUT_RDWR);
+    close(pipe[0]);
+    close(pipe[1]);
 }
 
 int main(int argc, char *argv[])
@@ -513,6 +516,7 @@ int main(int argc, char *argv[])
             }
             printf("accepted connection from PQB\n");
             QuestionBanks(newp_fd, pqbpipe);
+            shutdown(newp_fd, SHUT_RDWR);
             close(newp_fd);
             close(pqbpipe[0]);
             close(pqbpipe[1]);
@@ -521,7 +525,7 @@ int main(int argc, char *argv[])
 
     // Main port is 4125
     while (1)
-    {                                   
+    {
         memset(&user, 0, sizeof(user)); // Make sure user structure is empty
         tm_size = sizeof tm_addr;
         FILE *fp;
@@ -532,13 +536,22 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
-
-        printf("%ld\n", sizeof(int));
-
-        if (!fork())
-        { // this is the child process
+        /* // THIS IS A TEST HTTP SERVER (ENTER LOCALHOST:4125 IN BROWSER)
+        char buffer[3000];
+        read(newtm_fd, buffer, 3000);
+        char *test = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+        write(newtm_fd, test, strlen(test));
+        */
+        switch (fork())
+        {
+        case -1:
+            perror("fork");
+            exit(EXIT_FAILURE);
+            break;
+        case 0:
             while (1)
             {
+                close(tm_fd);
                 char *returnvalue;
                 char httprequestvalue[2];
                 memset(username, 0, sizeof(username));
@@ -561,8 +574,7 @@ int main(int argc, char *argv[])
                 {
                     if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
                         perror("send");
-                    returnvalue = "IL";
-                    goto invalidsignin;
+                    continue;
                 }
                 else if (loginValue == -2) // File is broken
                 {
@@ -572,8 +584,7 @@ int main(int argc, char *argv[])
                 {
                     if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
                         perror("send");
-                    returnvalue = "IL";
-                    goto invalidsignin;
+                    continue;
                 }
 
                 int loadvalue = loadUser();
@@ -583,12 +594,7 @@ int main(int argc, char *argv[])
                 }
                 else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
-                    returnvalue = "YE";
-                }
-
-                if (!strcmp(returnvalue, "YE")) // Success (login and filename is correct + loaded)
-                {
-                usersignedin:
+                    usersignedin:
                     /*
                     Here is where the HTTP requests will come through once the user is signed in
                     In here all user data is loaded into the structure
@@ -598,16 +604,13 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
+                    shutdown(newtm_fd, SHUT_RDWR);
                     close(newtm_fd);
                     close(cqbpipe[1]);
                     close(cqbpipe[0]);
                     close(pqbpipe[0]);
                     close(pqbpipe[1]);
                     break;
-                }
-                else if (!strcmp(returnvalue, "IL")) // Incorrect Login
-                {
-                invalidsignin:
                 }
                 else if (!strcmp(returnvalue, "NF")) // Bad / No File
                 {
@@ -640,8 +643,14 @@ int main(int argc, char *argv[])
                     goto usersignedin;
                 }
             }
+            break;
+        default:
+            shutdown(newtm_fd, SHUT_RDWR);
+            close(newtm_fd);
+            break;
         }
-        close(newtm_fd);
     }
+    shutdown(tm_fd, SHUT_RDWR);
+    close(tm_fd);
     return 0;
 }
