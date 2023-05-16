@@ -103,11 +103,11 @@ int loadUser()
     }
     fclose(fp);
 
-    if (QBcounter == 10)
+    if (QBcounter == 10) // If there are 10 questions
         return 0;
-    else if (10 > QBcounter > 0)
+    else if (10 > QBcounter > 0) // If not 10 questions, error out
         return -1;
-    else if (QBcounter <= 0)
+    else if (QBcounter <= 0) // If there are 10 or less questions error out
         return -1;
 }
 
@@ -519,8 +519,9 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Main port is 4125
     while (1)
-    {                                   // Main port is 4125
+    {                                   
         memset(&user, 0, sizeof(user)); // Make sure user structure is empty
         tm_size = sizeof tm_addr;
         FILE *fp;

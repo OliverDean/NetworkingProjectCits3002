@@ -43,7 +43,7 @@ def communicate_with_tm(s, version):
                 exit(0)
             elif decoded_data == "AN": # Receive Answer and return if correct
                     # Receive the size of the answer
-                answer_size = int(s.recv(200).decode())
+                answer_size = int(s.recv(4).decode()) #ints are only 4 bytes
                 received_bytes = 0
                 answer = ''
                 while received_bytes < answer_size:
