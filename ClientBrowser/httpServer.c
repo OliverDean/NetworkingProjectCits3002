@@ -11,7 +11,8 @@
 
 #define PORT 4125
 
-int fetch_page(const char *page) {
+
+int fetch_page(const char *page, const char *command) {
     int sockfd, readSize;
     struct sockaddr_in servaddr;
     char request[128];
@@ -66,24 +67,35 @@ int fetch_page(const char *page) {
         }
     }
 
+    // Communicate with the TM
+    if (strlen(command) > 0) {
+        // You will need to implement this function
+        communicate_with_tm(command, "data");
+    }
+
     // Close the socket
     close(sockfd);
 
     return 0;
 }
 
+
 int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
 
-    const char *pages[] = {"login.html", "logout.html", "question_multi.html", "question_coding.html", "error.html", "question_dashboard.html"};
+    const char *pages[] = {"login.html", "logout.html", "question_multi.html", "question_coding.html", "error.html", "dashboard.html"};
     size_t num_pages = sizeof(pages) / sizeof(pages[0]);
 
+    // Commands to communicate with the TM
+    const char *commands[] = {"", "GQ", "PQ", "AN", "IQ", ""};
+
     for (size_t i = 0; i < num_pages; i++) {
-        if (fetch_page(pages[i]) != 0) {
+        if (fetch_page(pages[i], commands[i]) != 0) {
             return 1;
         }
     }
 
     return 0;
 }
+
