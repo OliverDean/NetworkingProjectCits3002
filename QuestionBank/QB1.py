@@ -4,6 +4,7 @@ import socket
 import string
 import sys, getopt
 import select
+import struct
 
 answered_questions_file = "answered_questions.txt"
 
@@ -63,21 +64,46 @@ def receive_answer(s):
     s.send(('Y' if is_answer_correct else 'N').encode())
 
 def generate_questions(s, question_dict):
-    for id, question_data in question_dict.items():
-        question = question_data['question']
-        options = question_data['options']
+    filename = 'questions.txt'
+    with open(filename, 'w') as f:
+        for id, question_data in question_dict.items():
+            question = question_data['question']
+            question_type = question_data['type']
 
-        # Convert question, options, and id to bytes
-        question_bytes = question.encode()
-        options_bytes = options.encode()
-        id_bytes = struct.pack('!i', id)  # Convert id to network byte order
+            # Write question, options (if mcq) or input and expected_output (if programming), and id to file
+            f.write(f"Question ID: {id}\n")
+            f.write(f"Question: {question}\n")
 
-        # Send length of question, question, length of options, options, and id
-        s.sendall(struct.pack('!i', len(question_bytes)))  # Send length of question
-        s.sendall(question_bytes)  # Send question
-        s.sendall(struct.pack('!i', len(options_bytes)))  # Send length of options
-        s.sendall(options_bytes)  # Send options
-        s.sendall(id_bytes)  # Send id
+            if question_type == 'mcq':
+                options = question_data['options']
+                f.write(f"Options: {options}\n")
+            elif question_type == 'programming':
+                input_data = question_data['input']
+                expected_output = question_data['expected_output']
+                f.write(f"Input: {input_data}\n")
+                f.write(f"Expected Output: {expected_output}\n")
+
+            f.write("\n")  # Separate each question with a blank line
+
+    # Send the file
+    send_file(s, filename)
+
+def send_file(s, filename):
+    # Get the file size
+    filesize = os.path.getsize(filename)
+
+    # Send the file size
+    s.sendall(struct.pack('!i', filesize))
+
+    # Send the file
+    with open(filename, 'rb') as f:
+        while True:
+            # Read up to 1024 bytes from the file
+            bytes_read = f.read(1024)
+            if not bytes_read:
+                # We're done reading the file
+                break
+            s.sendall(bytes_read)
 
 def connect_to_tm(port):
     try:
