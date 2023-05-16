@@ -45,36 +45,49 @@ A
 
 6
 programchallenge
+C
 write a function and return the total of two input number
 Input:("5", "10")
 Output:"15"
 
 7
 programchallenge
+C
 Write a function that returns the product of two input numbers.
 Input:("20", "15")
-Output:"5"
+Output:"300"
 
 8
 programchallenge
+C
 Write a function that returns the difference of two input numbers.
 Input:("20", "15")
 Output:"5"
 
 9
 programchallenge
+C
 Write a function that returns the quotient of two input numbers.
 Input:("100", "20")
 Output:"5"
 
 10
 programchallenge
+C
 Write a function that returns the remainder of two input numbers.
 Input:("10", "3")
 Output:"1"
 
 11
 programchallenge
-Write a function that squares an input number.
-Input:("5")
-Output:"25"
+C
+Write a function that compares two input numbers and returns the larger number.
+Input: ("5", "3")
+Output: "5"
+
+12
+programchallenge
+C
+Write a function that returns the minimum of two input numbers.
+Input: ("6", "3")
+Output: "3"
