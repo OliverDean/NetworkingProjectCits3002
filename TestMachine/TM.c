@@ -481,15 +481,14 @@ void setUser(char *buffer, char username[32], char password[32])
             }
             previous = pch;
         }
-        // here, until we reach the \0 bytes 
-        int count = 0;
-        for (int i =0; i < strlen(password); i++)
-        {
-            if (password[i] != '\n' || password[i] != '\r' || password[i] != '\0')
-            {
-                printf("\t%c\n", password[i]);
-            }
-        }
+        // int count = 0;
+        // for (int i =0; i < strlen(password); i++)
+        // {
+        //     if (password[i] != '\n' || password[i] != '\r' || password[i] != '\0')
+        //     {
+        //         printf("\t%c\n", password[i]);
+        //     }
+        // }
 }
 
 char *questionDashboard()
