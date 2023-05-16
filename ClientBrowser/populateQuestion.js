@@ -52,10 +52,11 @@ window.onload = function () {
     event.preventDefault(); // Prevent the form from submitting normally
 
     // Create a new FormData object from the form
+    formData.append('questionNumber', question.id);
     var formData = new FormData(form);
 
     // Send a POST request to the server with the form data
-    fetch("http://your-server-url.com/submit-answer", {
+    fetch("http:4125", {
       method: "POST",
       body: formData,
     }).then(function (response) {
