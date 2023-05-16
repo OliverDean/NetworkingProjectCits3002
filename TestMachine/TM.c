@@ -452,9 +452,12 @@ void displaylogin(int newtm_fd) {
     fread(logintext, sizeof(char), length, loginfile); // Grab entire file
     int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
     fullhttp = malloc(sizeof(char) * total_length);
-    printf("%s\n", logintext);
     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
     fclose(loginfile);
+    if (send(newtm_fd, fullhttp, strlen(fullhttp), 0) == -1)
+    {
+        perror("send");
+    }
     write(newtm_fd, fullhttp, strlen(fullhttp));
     free(logintext);
     free(fullhttp);
@@ -606,12 +609,6 @@ int main(int argc, char *argv[])
         char *test = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
         write(newtm_fd, test, strlen(test));
         */
-        displaylogin(newtm_fd);
-        char buffer[2500];
-        recv(newtm_fd, buffer, sizeof(buffer),0);
-        setUser(buffer, username, password);
-        printf("USERNAME: %s\n", username);
-        printf("PASSWORD: %s\n", password);
         switch (fork())
         {
         case -1:
@@ -621,7 +618,13 @@ int main(int argc, char *argv[])
         case 0:
             while (1)
             {
-                close(tm_fd);
+                displaylogin(newtm_fd);
+                char buffer[2500];
+                while (recv(newtm_fd, buffer, sizeof(buffer),0) <= 1);
+                printf("Buffer: %s\n", buffer);
+                setUser(buffer, username, password);
+                printf("USERNAME: %s\n", username);
+                printf("PASSWORD: %s\n", password);
                 char *returnvalue;
                 char httprequestvalue[2];
                 // memset(username, 0, sizeof(username));
@@ -717,7 +720,6 @@ int main(int argc, char *argv[])
             }
             break;
         default:
-            shutdown(newtm_fd, SHUT_RDWR);
             close(newtm_fd);
             break;
         }
