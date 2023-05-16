@@ -45,9 +45,10 @@ function loadQuestionScript(questionData) {
     console.error('Unknown question type:', type);
     return;
   }
+  window.questionData = questionData;
 
-  // Create a script tag, set its source to the chosen file, and append it to the head of the document
+  // Create a script tag, set its source to the chosen file, and append it to the body of the document
   var scriptTag = document.createElement("script");
   scriptTag.src = scriptFile;
-  document.head.appendChild(scriptTag);
+  document.body.appendChild(scriptTag);
 }
