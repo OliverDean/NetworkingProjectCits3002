@@ -433,6 +433,32 @@ void QuestionBanks(int QBsocket, int pipe[2])
     close(pipe[0]);
     close(pipe[1]);
 }
+void displaylogin(int newtm_fd) {
+    char buffer[3000];
+    int length = 0;
+    char *logintext = NULL;
+    char *fullhttp = NULL;
+    read(newtm_fd, buffer, 3000);
+    char *header = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: "; // Default header
+    FILE *loginfile = fopen("./ClientBrowser/login.html", "r"); // Open login.html
+    if (loginfile == NULL)
+    {
+        perror("fopen");
+    }
+    fseek(loginfile, 0, SEEK_END);
+    length = ftell(loginfile); // Grab file length
+    fseek(loginfile, 0, SEEK_SET);
+    logintext = (char*)malloc((length) * sizeof(char));       // Buffer for file
+    fread(logintext, sizeof(char), length, loginfile); // Grab entire file
+    int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
+    fullhttp = malloc(sizeof(char) * total_length);
+    printf("%s\n", logintext);
+    snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
+    fclose(loginfile);
+    write(newtm_fd, fullhttp, strlen(fullhttp));
+    free(logintext);
+    free(fullhttp);
+}
 
 int main(int argc, char *argv[])
 {
@@ -536,12 +562,13 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
-        /* // THIS IS A TEST HTTP SERVER (ENTER LOCALHOST:4125 IN BROWSER)
+        /*
         char buffer[3000];
         read(newtm_fd, buffer, 3000);
         char *test = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
         write(newtm_fd, test, strlen(test));
         */
+        displaylogin(newtm_fd);
         switch (fork())
         {
         case -1:

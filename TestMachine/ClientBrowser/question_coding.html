@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="icon.jpg" sizes="32x32" />
+    <title>Short Answer Coding Question Page</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="timer" hidden>00:00</div>
+      <!-- Short answer question module -->
+      <h1>Short Answer Coding Question</h1>
+      <form id="codingQuestionForm">
+        <div class="form-group">
+          <label for="codingAnswer"></label>
+            <!-- dynamically alocated coding questions -->
+
+        <div class="navigation-buttons">
+          <button type="button" class="prev-question">Previous Question</button>
+          <button type="submit" class="submit-answer">Submit Answer</button>
+          <button type="button" class="next-question">Next Question</button>
+        </div>
+      </form>
+    </div>
+    <script src="populateQuestionCoding.js"></script>
+  </body>
+</html>
