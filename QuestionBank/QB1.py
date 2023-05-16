@@ -18,73 +18,43 @@ PQBCount = 6
 CQBCount = 4
 
 def communicate_with_tm(s, version):
-    RQB=get_random_questions(QBS,version)
-    # Functions to execute for each command
-    commands = {
-        "GQ": generate_questions(s,RQB),
-        "AN": receive_answer(s),
-        "PQ": recv_id_and_return_question_info(s, RQB),
-        "IQ": recv_id_and_return_question_info(s, RQB),  # assume PQ IQ all receive ID and need return related data
-    }
+    def handle_client():
+        RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
+        commands = {
+            "GQ": generate_questions(s, RQB),
+            "AN": receive_answer(s),
+            "PQ": recv_id_and_return_question_info(s, RQB),
+            "IQ": send_answer(s, RQB),
+        }
 
-    while True:
-        print("waiting for TM")
-        data = s.recv(2)
+        while True:
+            print("waiting for TM")
+            data = s.recv(2)
 
-        if not data:
-            print("Connection closed by server.")
-            break
+            if not data:
+                print("Connection closed by server.")
+                break
 
-        decoded_data = data.decode()
+            decoded_data = data.decode()
 
-        if decoded_data in commands:
-            function_to_execute = commands[decoded_data]
-            # Assuming all functions take the same arguments
-            function_to_execute(s, version)
-        else:
-            print("Invalid command received. Closing connection.")
-            break
+            if decoded_data in commands:
+                function_to_execute = commands[decoded_data]
+                function_to_execute(s, version)
+            else:
+                print("Invalid command received. Closing connection.")
+                break
 
-
-def receive_answer(s):
-    # Receive the length of the answer
-    length_net = s.recv(4)
-    length = socket.ntohl(int.from_bytes(length_net, 'big'))  # Convert network byte order to host byte order
-
-    # Receive the answer
-    answer = s.recv(length).decode()
-
-    # Receive the question ID
-    question_id_net = s.recv(4)
-    question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
-
-    # Process the answer and question ID...
-    # If the answer is correct, send "Y". Otherwise, send "N".
-    is_answer_correct = check_answer(answer, question_id)  # You need to implement this function
-    s.send(('Y' if is_answer_correct else 'N').encode())
+    thread = threading.Thread(target=handle_client)
+    thread.start()
 
 def generate_questions(s, question_dict):
-    filename = 'questions.txt'
+    # Include a timestamp in the filename to make it unique
+    timestamp = int(time.time())
+    filename = f'questions_{timestamp}.txt'
     with open(filename, 'w') as f:
         for id, question_data in question_dict.items():
-            question = question_data['question']
-            question_type = question_data['type']
-
-            # Write question, options (if mcq) or input and expected_output (if programming), and id to file
+            # Write only the question id to file
             f.write(f"Question ID: {id}\n")
-            f.write(f"Question: {question}\n")
-
-            if question_type == 'mcq':
-                options = question_data['options']
-                f.write(f"Options: {options}\n")
-            elif question_type == 'programming':
-                input_data = question_data['input']
-                expected_output = question_data['expected_output']
-                f.write(f"Input: {input_data}\n")
-                f.write(f"Expected Output: {expected_output}\n")
-
-            f.write("\n")  # Separate each question with a blank line
-
     # Send the file
     send_file(s, filename)
 
@@ -105,15 +75,22 @@ def send_file(s, filename):
                 break
             s.sendall(bytes_read)
 
-def connect_to_tm(port):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((TM_SERVER, port))
-        print("connected")
-        return s
-    except socket.error as e:
-        print(f"Unable to connect to the server: {e}")
-        sys.exit(1)
+def receive_answer(s):
+    # Receive the length of the answer
+    length_net = s.recv(4)
+    length = socket.ntohl(int.from_bytes(length_net, 'big'))  # Convert network byte order to host byte order
+
+    # Receive the answer
+    answer = s.recv(length).decode()
+
+    # Receive the question ID
+    question_id_net = s.recv(4)
+    question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
+
+    # Process the answer and question ID...
+    # If the answer is correct, send "Y". Otherwise, send "N".
+    is_answer_correct = check_answer(answer, question_id)  # You need to implement this function
+    s.send(('Y' if is_answer_correct else 'N').encode())
 
 def recv_id_and_return_question_info(s, question_dict):
     # Receive 4 bytes of data (the size of an integer in network byte order)
@@ -148,7 +125,39 @@ def return_question_info(s, question_dict, id):
     s.sendall(options_bytes)  # Send options
     s.sendall(id_bytes)  # Send id
 
+def send_answer(s, question_dict):
+    # Receive QuestionID
+    question_id = s.recv(1024).decode()
+    
+    # Try to convert the received ID to integer. If it fails, it's probably not a valid ID.
+    try:
+        question_id = int(question_id)
+    except ValueError:
+        print(f"Received an invalid QuestionID: {question_id}")
+        return
 
+    # Look up the question data for this id
+    question_data = question_dict.get(question_id)
+
+    if question_data is None:
+        print(f"No data found for QuestionID {question_id}")
+        return
+
+    # Extract the answer
+    answer = question_data['answer']
+
+    # Send the answer back
+    s.send(answer.encode())
+
+def connect_to_tm(port):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((TM_SERVER, port))
+        print("connected")
+        return s
+    except socket.error as e:
+        print(f"Unable to connect to the server: {e}")
+        sys.exit(1)
 
 def parse_data(QB):
     with open(QB, "r") as file:
@@ -193,7 +202,6 @@ def parse_data(QB):
 
     return question_dict
 
-
 def get_random_questions(question_dict, num_questions):
     question_ids = list(question_dict.keys())
     random_question_ids = random.sample(question_ids, num_questions)
@@ -204,7 +212,6 @@ def get_random_questions(question_dict, num_questions):
 
     return random_questions
 
-        
 def check_answer(question_dict, id, user_answer):
     question = question_dict[id]
 
@@ -281,8 +288,6 @@ int user_function(int a, int b) {{
             expected_output = expected_output.lower() == 'true'
         
         return str(user_output) == str(expected_output)
-
-
   
 def main():
     try:
