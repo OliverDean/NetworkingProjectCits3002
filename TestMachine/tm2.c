@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define TMPORT "4125"
+#define TMPORT "80"
 #define PQBPORT "4126"
 #define CQBPORT "4127"
 #define BACKLOG 2
@@ -312,7 +312,7 @@ char* loginPage()
     FILE *fp;
     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/login.html", "r");
     if (fp == NULL) {perror("html file");}
-    char header[5000] = "HTTP/1.1 200 OK\r\n\n";
+    char header[5000] = "HTTP/1.1 GET /login 200 OK\r\n\n";
     char line[180];
     while (fgets(line, sizeof(line), fp))
     {
@@ -327,14 +327,13 @@ char *questionDashboard()
     FILE *fp;
     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
     if (fp == NULL) {perror("html file");}
-    char header[5000] = "HTTP/1.1 404 OK\r\n Set-Cookie: myCookie= karlawashere\r\n\n";
+    char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
     char line[180];
     while (fgets(line, sizeof(line), fp))
     {
         returnString = strcat(header, line);
     };
     return returnString;
-
 }
 
 void setUser(char *buffer, char username[32], char password[32])
@@ -549,9 +548,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        if (!fork())
-        { // this is the child process
-            char *returnvalue;
+
             memset(username, 0, sizeof(username));
             memset(password, 0, sizeof(password));
 
@@ -559,13 +556,16 @@ int main(int argc, char *argv[])
             username[strcspn(username, "\r")] = '\0';
             password[strcspn(password, "\n")] = '\0';
             password[strcspn(password, "\r")] = '\0';
-
+            
             char buffer[2500];
             recv(newtm_fd, buffer, sizeof(buffer),0);
             printf("buffer received from browser: %s\n", buffer);
             send(newtm_fd, loginPage(), strlen(loginPage()), 0);
             setUser(buffer, username, password);
 
+        if (!fork())
+        { // this is the child process
+            char *returnvalue;
 
             int loginValue = login(username, password, &user.user_filename);
             if (loginValue == -1) // Invalid Username (doesn't exist)
