@@ -460,6 +460,44 @@ void displaylogin(int newtm_fd) {
     free(fullhttp);
 }
 
+void setUser(char *buffer, char username[32], char password[32])
+{
+        char *pch;
+        pch = strtok(buffer, " ? = &");
+        char *previous = pch;
+        while (pch != NULL) 
+        {
+
+            pch=strtok(NULL, " ? = &");
+            if (strcmp(previous, "username") == 0)
+            {
+                strcpy(username, pch);
+            }
+
+            if (strcmp(previous, "password") == 0)
+            {
+                strcpy(password, pch);
+                break;
+            }
+            previous = pch;
+        }
+}
+
+char *questionDashboard()
+{
+    char *returnString;
+    FILE *fp;
+    fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
+    if (fp == NULL) {perror("html file");}
+    char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
+    char line[180];
+    while (fgets(line, sizeof(line), fp))
+    {
+        returnString = strcat(header, line);
+    };
+    return returnString;
+}
+
 int main(int argc, char *argv[])
 {
     char username[32] = {0};
@@ -569,6 +607,11 @@ int main(int argc, char *argv[])
         write(newtm_fd, test, strlen(test));
         */
         displaylogin(newtm_fd);
+        char buffer[2500];
+        recv(newtm_fd, buffer, sizeof(buffer),0);
+        setUser(buffer, username, password);
+        printf("USERNAME: %s\n", username);
+        printf("PASSWORD: %s\n", password);
         switch (fork())
         {
         case -1:
@@ -581,20 +624,20 @@ int main(int argc, char *argv[])
                 close(tm_fd);
                 char *returnvalue;
                 char httprequestvalue[2];
-                memset(username, 0, sizeof(username));
-                memset(password, 0, sizeof(password));
-                if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
-                    perror("send");
-                if (recv(newtm_fd, username, sizeof(username), 0) == -1)
-                    perror("recv");
-                if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
-                    perror("send");
-                if (recv(newtm_fd, password, sizeof(password), 0) == -1)
-                    perror("recv");
-                username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
-                username[strcspn(username, "\r")] = '\0';
-                password[strcspn(password, "\n")] = '\0';
-                password[strcspn(password, "\r")] = '\0';
+                // memset(username, 0, sizeof(username));
+                // memset(password, 0, sizeof(password));
+                // if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
+                //     perror("send");
+                // if (recv(newtm_fd, username, sizeof(username), 0) == -1)
+                //     perror("recv");
+                // if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
+                //     perror("send");
+                // if (recv(newtm_fd, password, sizeof(password), 0) == -1)
+                //     perror("recv");
+                // username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+                // username[strcspn(username, "\r")] = '\0';
+                // password[strcspn(password, "\n")] = '\0';
+                // password[strcspn(password, "\r")] = '\0';
 
                 int loginValue = login(username, password, &user.user_filename);
                 if (loginValue == -1) // Invalid Username (doesn't exist)
@@ -631,6 +674,8 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
+                    printf("success here\n");
+                    send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     shutdown(newtm_fd, SHUT_RDWR);
                     close(newtm_fd);
                     close(cqbpipe[1]);
