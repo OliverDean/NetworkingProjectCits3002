@@ -58,6 +58,7 @@ int loadUser(curUser *user)
 
     while ((linelen = getline(&line, &linesize, fp)) != -1)
     {
+        printf("this is the counter: %d\n", QBcounter);
         printf("Grabbing line.\n");
         printf("line is %s\n", line);
         buf = strtok(line, ";");
@@ -73,41 +74,55 @@ int loadUser(curUser *user)
             return -1;
         }
         else if (!strcmp(buf, "q"))
-        {                            // question line
-
+        { // question line
+            char *t = NULL;
             buf = strtok(NULL, ";"); // QB its from
             user->QB[QBcounter] = malloc(strlen(buf));
             strcpy(user->QB[QBcounter], buf);
             user->QB[QBcounter][strlen(buf)] = '\0';
+
+            printf("QB is: %s\n", user->QB[QBcounter]);
 
             buf = strtok(NULL, ";"); // QuestionID
             user->QuestionID[QBcounter] = malloc(strlen(buf));
             strcpy(user->QuestionID[QBcounter], buf);
             user->QuestionID[QBcounter][strlen(buf)] = '\0';
 
+            printf("QuestionID is: %s\n", user->QuestionID[QBcounter]);
+
             buf = strtok(NULL, ";"); // Attempted marks
 
-            { // For the marks string
-                if (*buf == 'N')
+            printf("Attempted marks: %s\n", buf);
+            printf("First attempted mark is: %c\n", *buf);
+
+            // For the marks string
+            for (t = buf; *t != '\0'; t++) {
+                if (*t == 'N')
                 { // If user has answered incorrectly
                     if (user->questions[QBcounter] == 0)
                         user->attempted++;
+                    printf("User has attempted %d questions.\n", user->attempted);
                     user->questions[QBcounter]++;
                 }
-                else if (*buf == 'Y')
+                else if (*t == 'Y')
                 { // If user has answered correctly
                     user->score[QBcounter] = 3 - user->questions[QBcounter];
+                    printf("Score is: %d\n", user->score[QBcounter]);
                     user->total_score += user->score[QBcounter];
+                    printf("Total score is: %d\n", user->total_score);
                     if (user->questions[QBcounter] == 0)
                     {
                         user->attempted++;
+                        printf("User has attempted %d questions.\n", user->attempted);
                     }
-                    continue;
+                    break;
                 }
-                else if (*buf == '-')
-                    continue;
+                else if (*t == '-')
+                {
+                    printf("Hasn't attempted yet.\n");
+                    break;
+                }
             }
-
             QBcounter++;
         }
     }
@@ -120,6 +135,7 @@ int loadUser(curUser *user)
     else if (QBcounter <= 0) // If somehow Qbcounter is below 0 (if we get here we are screwed)
         return -1;
 }
+
 
 // Generates random string for user cookie file
 // Returns said string
@@ -749,6 +765,9 @@ int main(int argc, char *argv[])
 
                 int loadvalue = loadUser(&user);
                 printf("QuestionID at index 3 is: %s\n", user.QuestionID[3]);
+                for(int i = 0; i < 10; i++) {
+                    printf("Question %d is from %s\n", i, user.QB[i]);
+                }
                 printf("load value: %i\n", loadvalue);
                 if (loadvalue == -1) // If file failed to open
                 {

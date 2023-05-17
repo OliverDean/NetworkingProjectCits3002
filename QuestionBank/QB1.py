@@ -9,7 +9,7 @@ import struct
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.0.5"
+TM_SERVER = "192.168.0.195"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
@@ -17,32 +17,32 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-# def communicate_with_tm(s, version, QBS):
-#         while True:
-#             print("waiting for TM")
-#             data = s.recv(2)
-#             print("recieved data")
-#             print(data.decode())
+def communicate_with_tm(s, version, QBS):
+    while True:
+        print("waiting for TM")
+        data = s.recv(2)
+        print("recieved data")
+        print(data.decode())
 
-#             if not data:
-#                 print("Connection closed by server.")
-#                 break
-#             elif data.decode() == "GQ":
-#                 RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-#                 generate_questions(s, RQB)
-#             elif data.decode() == "AN": #answer question
-#                 receive_answer(s,QBS)
-#             elif data.decode() == "IQ": #incorrect question
-#                 send_answer(s,QBS)
-#             elif data.decode() == "PQ": #return question text
-#                 recv_id_and_return_question_info(s,QBS)
-#             else:
-#                 print("Invalid command received. Closing connection.")
-#                 break
+        if not data:
+            print("Connection closed by server.")
+            break
+        elif data.decode() == "GQ":
+            RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
+            generate_questions(s, RQB)
+        elif data.decode() == "AN": #answer question
+            receive_answer(s,QBS)
+        elif data.decode() == "IQ": #incorrect question
+            send_answer(s,QBS)
+        elif data.decode() == "PQ": #return question text
+            recv_id_and_return_question_info(s,QBS)
+        else:
+            print("Invalid command received. Closing connection.")
+            break
 
 def start_server(version, QBS):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("192.168.0.5", 4126))
+    server_socket.bind((TM_SERVER, 4126))
     server_socket.listen(1)
 
     while True:  # Infinite loop to accept new connections
@@ -328,15 +328,15 @@ def main():
         if opt == '-p': #python
             print("conencting to python")
             QBS=parse_data(PQB)
-            # s = connect_to_tm(PQB_PORT)
-            # communicate_with_tm(s, PQBCount, QBS)
+            s = connect_to_tm(PQB_PORT)
+            communicate_with_tm(s, PQBCount, QBS)
             start_server(PQBCount,QBS)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
-            # s = connect_to_tm(CQB_PORT)
-            # communicate_with_tm(s, CQBCount, QBS)
-            # start_server(PQBCount,QBS) 
+            s = connect_to_tm(CQB_PORT)
+            communicate_with_tm(s, CQBCount, QBS)
+            start_server(PQBCount,QBS) 
     
 if __name__ == "__main__":
     main()
