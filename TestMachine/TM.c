@@ -312,7 +312,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 {
     while (1)
     {
-        char commandbuffer[32] = {0};
+        char commandbuffer[3] = {0};
         if (read(pipe[0], commandbuffer, 3) == -1) // Wait for instructions
         {
             perror("read");
@@ -359,6 +359,10 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             {
                 fprintf(ft, "q;%s;%s;---;\n", QBversion, buf); // Add it to users cookie file
                 buf = strtok(NULL, ";");
+            }
+            if (write(pipe[1], "YE", 3) == -1)
+            {
+                perror("write");
             }
             fclose(ft);
         }
@@ -419,56 +423,88 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
         else if (!strcmp(commandbuffer, "PQ"))
         { // If QB's need to return the question from questionID
             printf("meant to return the question here...\n");
-            int length = 0;
-            char *questionBuf;
+            int questionlength = 0;
+            int optionlength = 0;
+            int questionID_index = 0;
+            int questionID_check = 0;
+            char *questionBuf = NULL;
+            char *optionBuf = NULL;
+            if (read(pipe[0], &questionID_index, sizeof(int)) == -1) 
+            {
+                perror("read");
+            }
+            printf("id is %d\n", questionID_index);
             if (send(QBsocket, "PQ", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            if (send(QBsocket, user.QuestionID[3], sizeof(user.QuestionID[3]), 0) == -1) // Send QB the questionID
+            printf("Send PQ\n");
+            if (send(QBsocket, user.QuestionID[questionID_index], sizeof(int), 0) == -1) // Send QB the questionID
             {
                 perror("send");
             }
-            if (recv(QBsocket, &length, sizeof(int), 0) == -1) // Get length of answer from QB
+            printf("Got user ID/\n");
+            if (recv(QBsocket, &questionlength, sizeof(int), 0) == -1) // Get length of answer from QB
             {
                 perror("recv");
             }
-            if (recv(QBsocket, questionBuf, ntohl(length), MSG_WAITALL) == -1) // Get answer
+            printf("Got question length\n");
+            if (recv(QBsocket, questionBuf, ntohl(questionlength), MSG_WAITALL) == -1) // Get answer
             {
                 perror("recv");
             }
-            printf("%s\n", questionBuf);
+            printf("got question.\n");
+            if (recv(QBsocket, &optionlength, sizeof(int), 0) == -1)
+            {
+                perror("recv");
+            }
+            printf("got option length");
+            if (recv(QBsocket, optionBuf, ntohl(optionlength), 0) == -1)
+            {
+                perror("recv");
+            }
+            printf("got options.\n");
+            if (recv(QBsocket, &questionID_check, sizeof(int), 0) == -1)
+            {
+                perror("recv");
+            }
+            printf("got questionID/\n");
+            if (ntohl(questionID_check) != questionID_index) {
+                printf("Error, received wrong question!\n");
+                printf("Expected questionID: %d - Got: %d\n", questionID_index, ntohl(questionID_check));
+                break;
+            }
+            printf("Question: %s\n", questionBuf);
+            printf("Options: %s\n", optionBuf);
         }
     }
-    shutdown(QBsocket, SHUT_RDWR);
+    close(QBsocket);
     close(pipe[0]);
     close(pipe[1]);
 }
-void displaylogin(int newtm_fd) {
-    char buffer[3000];
-    int length = 0;
+char* loginPage()
+{
+    char *returnString;
+    FILE *fp;
     char *logintext = NULL;
     char *fullhttp = NULL;
-    read(newtm_fd, buffer, 3000);
-    char *header = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: "; // Default header
-    FILE *loginfile = fopen("./ClientBrowser/login.html", "r"); // Open login.html
-    if (loginfile == NULL)
-    {
-        perror("fopen");
-    }
-    fseek(loginfile, 0, SEEK_END);
-    length = ftell(loginfile); // Grab file length
-    fseek(loginfile, 0, SEEK_SET);
+    fp = fopen("./ClientBrowser/login.html", "r");
+    if (fp == NULL) {perror("html file");}
+    char *header = "HTTP/1.1 GET /login 200 OK\nContent-Type: text/html\nContent-Length: ";
+    fseek(fp, 0, SEEK_END);
+    int length = ftell(fp); // Grab file length
+    fseek(fp, 0, SEEK_SET);
     logintext = (char*)malloc((length) * sizeof(char));       // Buffer for file
-    fread(logintext, sizeof(char), length, loginfile); // Grab entire file
+    fread(logintext, sizeof(char), length, fp); // Grab entire file
     int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
     fullhttp = malloc(sizeof(char) * total_length);
     // printf("%s\n", logintext);
     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
-    fclose(loginfile);
-    write(newtm_fd, fullhttp, strlen(fullhttp));
-    free(logintext);
+    fclose(fp);
+    strcpy(returnString, fullhttp);
     free(fullhttp);
+    free(logintext);
+    return returnString;
 }
 
 void setUser(char *buffer, char username[32], char password[32])
@@ -707,7 +743,56 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-                    printf("success here\n");
+                    printf("successful signin.\n");
+                    char *cqbconf = NULL;
+                    char *pqbconf = NULL;
+                    printf("Waiting for confirmation.\n");
+                    if (loadvalue != 0 && loginValue != 0)
+                    {
+                        while (strcasecmp(cqbconf, "YE"))
+                        {
+                            if (read(cqbpipe[0], cqbconf, 3) == -1)
+                            {
+                                perror("read");
+                            }
+                        }
+                        printf("Confirmation from CQB\n");
+                        while (strcasecmp(pqbconf, "YE"))
+                        {
+                            if (read(pqbpipe[0], pqbconf, 3) == -1)
+                            {
+                                perror("read");
+                            }
+                        }
+                    }
+                    printf("Files made, conf is: %s & %s", cqbconf, pqbconf);
+                    int index = 3;
+                    if (strcasecmp(user.QB[2], "c"))
+                    {
+                        printf("Sending PQ to c\n");
+                        if (write(cqbpipe[1], "PQ", 3) == -1)
+                        {
+                            perror("write");
+                        }
+                        if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
+                        {
+                            perror("write");
+                        }
+                        printf("Grabbing question");
+                    }
+                    else if(strcasecmp(user.QB[2], "python"))
+                    {
+                        printf("Sending PQ to p\n");
+                        if (write(pqbpipe[1], "PQ", 3) == -1)
+                        {
+                            perror("write");
+                        }
+                        if (write(pqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
+                        {
+                            perror("write");
+                        }
+                        printf("Grabbing question");
+                    }
                     //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     close(newtm_fd);
                     close(cqbpipe[1]);

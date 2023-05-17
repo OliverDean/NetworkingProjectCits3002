@@ -18,9 +18,6 @@ PQBCount = 6
 CQBCount = 4
 
 def communicate_with_tm(s, version, QBS):
-        RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-        print(RQB)
-
         while True:
             print("waiting for TM")
             data = s.recv(2)
@@ -31,13 +28,15 @@ def communicate_with_tm(s, version, QBS):
                 print("Connection closed by server.")
                 break
             elif data.decode() == "GQ":
+                RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
                 generate_questions(s, RQB)
             elif data.decode() == "AN": #answer question
                 continue
             elif data.decode() == "IQ": #incorrect question
                 continue
             elif data.decode() == "PQ": #return question text
-                continue
+                print("got PQ")
+                recv_id_and_return_question_info(s, QBS)
             else:
                 print("Invalid command received. Closing connection.")
                 break
