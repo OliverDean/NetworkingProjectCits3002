@@ -367,13 +367,12 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             printf("meant to answer here..\n");
             char *answer = "#include <stdio>\n\nint main(int argv, char *argv[]){\nprintf(\"Hello World!\");\nreturn 0;}";
             int length = sizeof(answer);
-            int sendnumber = htonl(length);
-            char *isAnswer;
+            char *isAnswer = NULL;
             if (send(QBsocket, "AN", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            if (send(QBsocket, &sendnumber, sizeof(sendnumber), 0) == -1) // Send answer string size to QB
+            if (send(QBsocket, &length, htonl(length), 0) == -1) // Send answer string size to QB
             {
                 perror("send");
             }
