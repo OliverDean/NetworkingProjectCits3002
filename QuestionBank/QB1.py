@@ -9,7 +9,7 @@ import struct
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.243.118"
+TM_SERVER = "192.168.0.5"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
@@ -17,29 +17,69 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-def communicate_with_tm(s, version, QBS):
+# def communicate_with_tm(s, version, QBS):
+#         while True:
+#             print("waiting for TM")
+#             data = s.recv(2)
+#             print("recieved data")
+#             print(data.decode())
+
+#             if not data:
+#                 print("Connection closed by server.")
+#                 break
+#             elif data.decode() == "GQ":
+#                 RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
+#                 generate_questions(s, RQB)
+#             elif data.decode() == "AN": #answer question
+#                 receive_answer(s,QBS)
+#             elif data.decode() == "IQ": #incorrect question
+#                 send_answer(s,QBS)
+#             elif data.decode() == "PQ": #return question text
+#                 recv_id_and_return_question_info(s,QBS)
+#             else:
+#                 print("Invalid command received. Closing connection.")
+#                 break
+
+def start_server(version, QBS):
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("192.168.0.5", 4126))
+    server_socket.listen(1)
+
+    while True:  # Infinite loop to accept new connections
+        print("Waiting for a connection...")
+
+        client_socket, client_address = server_socket.accept()
+
+        print(f"Accepted connection from {client_address}.")
+
+        # Now we handle the client connection in a separate loop
         while True:
             print("waiting for TM")
-            data = s.recv(2)
+            data = client_socket.recv(2)
+            if not data:
+                print("No data received from client. Closing connection.")
+                break
             print("recieved data")
             print(data.decode())
 
-            if not data:
-                print("Connection closed by server.")
-                break
-            elif data.decode() == "GQ":
+            if data.decode() == "GQ":
                 RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-                generate_questions(s, RQB)
+                generate_questions(client_socket, RQB)
             elif data.decode() == "AN": #answer question
-                continue
+                receive_answer(client_socket,QBS)
             elif data.decode() == "IQ": #incorrect question
-                continue
+                send_answer(client_socket,QBS)
             elif data.decode() == "PQ": #return question text
-                print("got PQ")
-                recv_id_and_return_question_info(s, QBS)
+                recv_id_and_return_question_info(client_socket,QBS)
             else:
                 print("Invalid command received. Closing connection.")
                 break
+
+        # When the client connection is closed, we close our side of the connection and go back to waiting for a new connection
+        client_socket.close()
+        print("Client connection closed. Waiting for a new connection...")
+
+    # The server socket is never closed in this example, because the server runs forever
 
 def generate_questions(s, question_dict):
         # Join the question IDs with a semicolon
@@ -59,7 +99,7 @@ def send_data(s, data):
         # Send the data
         s.sendall(data)
 
-def receive_answer(s):
+def receive_answer(s,QBS):
     # Receive the length of the answer
     length_net = s.recv(4)
     length = socket.ntohl(int.from_bytes(length_net, 'big'))  # Convert network byte order to host byte order
@@ -72,8 +112,13 @@ def receive_answer(s):
     question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
 
     # Process the answer and question ID...
+    print(f"Question ID: {question_id}")
+    question = QBS[str(question_id)]
+    print(f"Question: {question['question']}")
+    print(f"Correct answer: {question['answer']}")
+    print(f"User answer: {answer}")
     # If the answer is correct, send "Y". Otherwise, send "N".
-    is_answer_correct = check_answer(answer, question_id)  # You need to implement this function
+    is_answer_correct = check_answer(QBS, question_id,answer)  # You need to implement this function
     s.send(('Y' if is_answer_correct else 'N').encode())
 
 def recv_id_and_return_question_info(s, question_dict):
@@ -195,7 +240,7 @@ def get_random_questions(question_dict, num_questions):
     return random_questions
 
 def check_answer(question_dict, id, user_answer):
-    question = question_dict[id]
+    question = question_dict[str(id)]
 
     if question['type'] == 'mcq':
         return user_answer.lower() == question['answer'].lower()
@@ -269,6 +314,7 @@ int user_function(int a, int b) {{
         elif expected_output.lower() in ['true', 'false']:
             expected_output = expected_output.lower() == 'true'
         
+        
         return str(user_output) == str(expected_output)
   
 def main():
@@ -282,13 +328,15 @@ def main():
         if opt == '-p': #python
             print("conencting to python")
             QBS=parse_data(PQB)
-            s = connect_to_tm(PQB_PORT)
-            communicate_with_tm(s, PQBCount, QBS)
+            # s = connect_to_tm(PQB_PORT)
+            # communicate_with_tm(s, PQBCount, QBS)
+            start_server(PQBCount,QBS)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
-            s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s, CQBCount, QBS) 
+            # s = connect_to_tm(CQB_PORT)
+            # communicate_with_tm(s, CQBCount, QBS)
+            # start_server(PQBCount,QBS) 
     
 if __name__ == "__main__":
     main()
