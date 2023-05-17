@@ -744,7 +744,6 @@ void displaylogin(int newtm_fd) {
             printf("Login failed with error code: %d\n", login_result);
         }
     }
-
     // Send the login page as the HTTP response
     handleRequest(newtm_fd, httpRequest);
 }
@@ -851,22 +850,21 @@ int main(int argc, char *argv[])
             perror("accept");
             break;
         }
-        /*
-        char buffer[3000];
-        read(newtm_fd, buffer, 3000);
-        char *test = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-        write(newtm_fd, test, strlen(test));
-        */
 
         memset(username, 0, sizeof(username));
         memset(password, 0, sizeof(password));
 
         printf("accepted connection from TM\n");
+
         displaylogin(newtm_fd);
+        close(newtm_fd);
+        
         printf("after display login\n");
-        char buffer[2500];
+
+        char buffer[3000];
         recv(newtm_fd, buffer, sizeof(buffer),0);
-        //setUser(buffer, username, password);
+        printf("buffer: %s\n", buffer);
+
         username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
         username[strcspn(username, "\r")] = '\0';
         password[strcspn(password, "\n")] = '\0';
