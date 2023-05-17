@@ -626,8 +626,8 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
 }
 
 void sendRedirectResponse(int socket_fd, const char *location) {
-    char header[128];
-    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\n\r\n", location);
+    char header[256];
+    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location);
     printf("Redirecting to: %s\n", location);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
@@ -748,21 +748,6 @@ void displaylogin(int newtm_fd) {
     // Send the login page as the HTTP response
     handleRequest(newtm_fd, httpRequest);
 }
-
-// char *questionDashboard()
-// {
-//     char *returnString;
-//     FILE *fp;
-//     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
-//     if (fp == NULL) {perror("html file");}
-//     char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
-//     char line[180];
-//     while (fgets(line, sizeof(line), fp))
-//     {
-//         returnString = strcat(header, line);
-//     };
-//     return returnString;
-// }
 
 int main(int argc, char *argv[])
 {
