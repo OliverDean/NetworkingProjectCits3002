@@ -17,19 +17,22 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-def communicate_with_tm(s, version):
-    def handle_client():
+def communicate_with_tm(s, version, QBS):
         RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
+        print("creating commands")
         commands = {
-            "GQ": generate_questions(s, RQB),
-            "AN": receive_answer(s),
-            "PQ": recv_id_and_return_question_info(s, QBS),
-            "IQ": send_answer(s, QBS),
+            "GQ": generate_questions,
+            "AN": receive_answer,
+            "PQ": recv_id_and_return_question_info,
+            "IQ": send_answer
         }
+        print("generated commands.")
+        print(RQB)
 
         while True:
             print("waiting for TM")
             data = s.recv(2)
+            print("recieved data")
 
             if not data:
                 print("Connection closed by server.")
@@ -43,9 +46,6 @@ def communicate_with_tm(s, version):
             else:
                 print("Invalid command received. Closing connection.")
                 break
-
-    thread = threading.Thread(target=handle_client)
-    thread.start()
 
 def generate_questions(s, question_dict):
         # Join the question IDs with a semicolon
@@ -287,12 +287,12 @@ def main():
             print("conencting to python")
             QBS=parse_data(PQB)
             s = connect_to_tm(PQB_PORT)
-            communicate_with_tm(s, PQBCount)
+            communicate_with_tm(s, PQBCount, PQB)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
             s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s, CQBCount) 
+            communicate_with_tm(s, CQBCount, CQB) 
     
 if __name__ == "__main__":
     main()

@@ -107,7 +107,7 @@ int loadUser()
         return 0;
     else if (10 > QBcounter > 0) // If not 10 questions, error out
         return -1;
-    else if (QBcounter <= 0) // If there are 10 or less questions error out
+    else if (QBcounter <= 0) // If somehow Qbcounter is below 0 (if we get here we are screwed)
         return -1;
 }
 
