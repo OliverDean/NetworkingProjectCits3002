@@ -9,7 +9,7 @@ import struct
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.0.195"
+TM_SERVER = "192.168.0.5"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
@@ -17,32 +17,9 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-def communicate_with_tm(s, version, QBS):
-    while True:
-        print("waiting for TM")
-        data = s.recv(2)
-        print("recieved data")
-        print(data.decode())
-
-        if not data:
-            print("Connection closed by server.")
-            break
-        elif data.decode() == "GQ":
-            RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-            generate_questions(s, RQB)
-        elif data.decode() == "AN": #answer question
-            receive_answer(s,QBS)
-        elif data.decode() == "IQ": #incorrect question
-            send_answer(s,QBS)
-        elif data.decode() == "PQ": #return question text
-            recv_id_and_return_question_info(s,QBS)
-        else:
-            print("Invalid command received. Closing connection.")
-            break
-
 def start_server(version, QBS):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((TM_SERVER, 4126))
+    server_socket.bind(("192.168.0.5", 4127))
     server_socket.listen(1)
 
     while True:  # Infinite loop to accept new connections
@@ -53,7 +30,7 @@ def start_server(version, QBS):
         print(f"Accepted connection from {client_address}.")
 
         # Now we handle the client connection in a separate loop
-        while True:
+        try:
             print("waiting for TM")
             data = client_socket.recv(2)
             if not data:
@@ -74,6 +51,9 @@ def start_server(version, QBS):
             else:
                 print("Invalid command received. Closing connection.")
                 break
+        except ConnectionResetError:
+            print("Connection was reset by client. Waiting for new connection...")
+            break  # Break from the client handling loop, going back to waiting for a new connection
 
         # When the client connection is closed, we close our side of the connection and go back to waiting for a new connection
         client_socket.close()
@@ -125,6 +105,11 @@ def recv_id_and_return_question_info(s, question_dict):
     # Receive 4 bytes of data (the size of an integer in network byte order)
     id_bytes = s.recv(4)
 
+    # Check if we received 4 bytes
+    if len(id_bytes) < 4:
+        print("Did not receive 4 bytes for ID. Closing connection.")
+        return
+
     # Unpack the bytes to get the integer ID
     id = struct.unpack('!i', id_bytes)[0]
 
@@ -133,14 +118,25 @@ def recv_id_and_return_question_info(s, question_dict):
 
 def return_question_info(s, question_dict, id):
     # Check if the ID is valid
-    if id not in question_dict:
+    if str(id) not in question_dict:
         print(f"Invalid question ID: {id}")
         return
 
     # Get the question and options
-    question_data = question_dict[id]
+    question_data = question_dict[str(id)]
     question = question_data['question']
     options = question_data['options']
+    # If options is None, set it to an empty string
+    if options is None:
+        options = ""
+
+    # Debugging output
+    print(f"Question data for ID {id}: {question_data}")
+    print(f"Options data type: {type(options)}")
+
+    # If options is a list, convert it to a string
+    if isinstance(options, list):
+        options = ', '.join(options)
 
     # Convert question, options, and id to bytes
     question_bytes = question.encode()
@@ -154,9 +150,11 @@ def return_question_info(s, question_dict, id):
     s.sendall(options_bytes)  # Send options
     s.sendall(id_bytes)  # Send id
 
+
 def send_answer(s, question_dict):
     # Receive QuestionID
-    question_id = s.recv(1024).decode()
+    question_id_net = s.recv(4)
+    question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
     
     # Try to convert the received ID to integer. If it fails, it's probably not a valid ID.
     try:
@@ -166,7 +164,7 @@ def send_answer(s, question_dict):
         return
 
     # Look up the question data for this id
-    question_data = question_dict.get(question_id)
+    question_data = question_dict.get(str(question_id))
 
     if question_data is None:
         print(f"No data found for QuestionID {question_id}")
@@ -214,7 +212,8 @@ def parse_data(QB):
             question_text = lines[i+3]
             input_data = lines[i+4].split('Input:')[1].strip()
             expected_output = lines[i+5].split('Output:')[1].strip()
-            i += 6
+            answer = lines[i+6]
+            i += 7
         else:
             i += 1
             continue
@@ -328,15 +327,15 @@ def main():
         if opt == '-p': #python
             print("conencting to python")
             QBS=parse_data(PQB)
-            s = connect_to_tm(PQB_PORT)
-            communicate_with_tm(s, PQBCount, QBS)
+            # s = connect_to_tm(PQB_PORT)
+            # communicate_with_tm(s, PQBCount, QBS)
             start_server(PQBCount,QBS)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
-            s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s, CQBCount, QBS)
-            start_server(PQBCount,QBS) 
+            # s = connect_to_tm(CQB_PORT)
+            # communicate_with_tm(s, CQBCount, QBS)
+            start_server(CQBCount,QBS) 
     
 if __name__ == "__main__":
     main()
