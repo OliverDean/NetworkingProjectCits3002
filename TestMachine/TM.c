@@ -776,6 +776,7 @@ int main(int argc, char *argv[])
                 else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
                     usersignedin:
+                    char code[2] = {0};
                     /*
                     Here is where the HTTP requests will come through once the user is signed in
                     In here all user data is loaded into the structure
@@ -785,7 +786,6 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-                    printf("successful signin.\n");
                     char *cqbconf = NULL;
                     char *pqbconf = NULL;
                     printf("Waiting for confirmation.\n");
@@ -807,42 +807,66 @@ int main(int argc, char *argv[])
                             }
                         }
                     }
+
                     printf("Files made, conf is: %s & %s\n", cqbconf, pqbconf);
-                    int index = 3;
-                    if (strcasecmp(user.QB[2], "c"))
+                    printf("successful signin.\n");
+                    while (1) // Testing QB connection
                     {
-                        printf("Sending PQ to c\n");
-                        if (write(cqbpipe[1], "PQ", 3) == -1)
-                        {
-                            perror("write");
+                        int indexbuf = 0;
+                        int index = 0;
+                        memset(code, 0, sizeof(code));
+                        if (send(newtm_fd, "Please enter a code: ", 20, 0) == -1)
+                            perror("send");
+                        if (recv(newtm_fd, code, 2, 0) == -1)
+                            perror("recv");
+                        code[strcspn(code, "\n")] = '\0';
+                        code[strcspn(code, "\r")] = '\0';
+
+                        if (!strcmp(code, "PQ")) {
+                            memset(code, 0, sizeof(code));
+                            if (send(newtm_fd, "Please enter a question index: ", 31, 0) == -1)
+                                perror("send");
+                            if (recv(newtm_fd, &indexbuf, 4, 0) == -1)
+                                perror("recv");
+                            index = ntohl(indexbuf);
+                            code[strcspn(code, "\n")] = '\0';
+                            code[strcspn(code, "\r")] = '\0';
+                            if (strcasecmp(user.QB[2], "c"))
+                            {
+                                printf("Sending PQ to c\n");
+                                if (write(cqbpipe[1], "PQ", 3) == -1)
+                                {
+                                    perror("write");
+                                }
+                                if (write(cqbpipe[1], index, sizeof(int)) == -1) // Question 2 is index 3
+                                {
+                                    perror("write");
+                                }
+                                if (write(cqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
+                                {
+                                    perror("write");
+                                }
+                                printf("Grabbing question");
+                            }
+                            else if(strcasecmp(user.QB[2], "python"))
+                            {
+                                printf("Sending PQ to p\n");
+                                if (write(pqbpipe[1], "PQ", 3) == -1)
+                                {
+                                    perror("write");
+                                }
+                                if (write(pqbpipe[1], index, sizeof(int)) == -1) // Question 2 is index 3
+                                {
+                                    perror("write");
+                                }
+                                printf("Question ID is: %s\n", user.QuestionID[index]);
+                                if (write(pqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
+                                {
+                                    perror("write");
+                                }
+                                printf("Grabbing question");
+                            }
                         }
-                        if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
-                        {
-                            perror("write");
-                        }
-                        if (write(cqbpipe[1], user.QuestionID[index - 1], 4) == -1) // Question 2 is index 3
-                        {
-                            perror("write");
-                        }
-                        printf("Grabbing question");
-                    }
-                    else if(strcasecmp(user.QB[2], "python"))
-                    {
-                        printf("Sending PQ to p\n");
-                        if (write(pqbpipe[1], "PQ", 3) == -1)
-                        {
-                            perror("write");
-                        }
-                        if (write(pqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
-                        {
-                            perror("write");
-                        }
-                        printf("Question ID is: %s\n", user.QuestionID[index - 1]);
-                        if (write(pqbpipe[1], user.QuestionID[index - 1], 4) == -1) // Question 2 is index 3
-                        {
-                            perror("write");
-                        }
-                        printf("Grabbing question");
                     }
                     //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     close(newtm_fd);
