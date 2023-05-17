@@ -17,39 +17,36 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-def communicate_with_tm(s, version):
-    def handle_client():
+def communicate_with_tm(s, version, QBS):
         RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-        commands = {
-            "GQ": generate_questions(s, RQB),
-            "AN": receive_answer(s),
-            "PQ": recv_id_and_return_question_info(s, QBS),
-            "IQ": send_answer(s, QBS),
-        }
+        print(RQB)
 
         while True:
             print("waiting for TM")
             data = s.recv(2)
+            print("recieved data")
+            print(data.decode())
 
             if not data:
                 print("Connection closed by server.")
                 break
-
-            decoded_data = data.decode()
-
-            if decoded_data in commands:
-                function_to_execute = commands[decoded_data]
-                function_to_execute(s, version)
+            elif data.decode() == "GQ":
+                generate_questions(s, RQB)
+            elif data.decode() == "AN": #answer question
+                continue
+            elif data.decode() == "IQ": #incorrect question
+                continue
+            elif data.decode() == "PQ": #return question text
+                continue
             else:
                 print("Invalid command received. Closing connection.")
                 break
 
-    thread = threading.Thread(target=handle_client)
-    thread.start()
-
 def generate_questions(s, question_dict):
         # Join the question IDs with a semicolon
         question_ids = ";".join(str(id) for id in question_dict.keys())
+        print(question_ids)
+        question_ids += ";"
         # Encode the string to bytes (required for sending via socket)
         question_ids = question_ids.encode()
         # Send the question IDs
@@ -287,12 +284,12 @@ def main():
             print("conencting to python")
             QBS=parse_data(PQB)
             s = connect_to_tm(PQB_PORT)
-            communicate_with_tm(s, PQBCount)
+            communicate_with_tm(s, PQBCount, QBS)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
             s = connect_to_tm(CQB_PORT)
-            communicate_with_tm(s, CQBCount) 
+            communicate_with_tm(s, CQBCount, QBS) 
     
 if __name__ == "__main__":
     main()

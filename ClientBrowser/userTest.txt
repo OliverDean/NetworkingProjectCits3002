@@ -3,13 +3,13 @@
 //; With questions being 'q - QB its from - questionID - amount of times attempted'
 
 Joel;
-q;python;a;NY-; 
-q;c;a;---;
-q;c;c;Y--;
-q;c;d;NNN;
-q;python;d;NNY;
-q;python;f;---;
-q;c;h;NNN;
-q;python;e;Y--;
-q;c;o;NY-;
-q;c;l;NNY;
+q;m;python;a;NY-; 
+q;t;c;a;---;
+q;t;c;c;Y--;
+q;m;c;d;NNN;
+q;t;python;d;NNY;
+q;m;python;f;---;
+q;m;c;h;NNN;
+q;m;python;e;Y--;
+q;m;c;o;NY-;
+q;m;c;l;NNY;

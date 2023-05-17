@@ -1,16 +1,18 @@
 window.onload = function () {
   var form = document.getElementById("questionForm");
 
-  // Create a single question from the file stream
-  var questionFile = `10\nmcq\nWhat does pip stand for python?\nA. Pip Installs Python\nB. Pip Installs Packages\nC. Preferred Installer Program\nD. All of the mentioned\nC`;
-  var lines = questionFile.split("\n");
-
+  // Create a single question from the JSON
+  // need to have the ability to send individual questions to the server
   var question = {
-    id: lines[0],
-    type: lines[1],
-    text: lines[2],
-    options: lines.slice(3, lines.length - 1),
-    answer: lines[lines.length - 1],
+    type: "mcq",
+    text: "Who developed Python Programming Language?",
+    options: [
+      "Wick van Rossum",
+      "Rasmus Lerdorf",
+      "Guido van Rossum",
+      "Niene Stom",
+    ],
+    answer: 2,
   };
 
   // Create a div for the question
@@ -52,11 +54,10 @@ window.onload = function () {
     event.preventDefault(); // Prevent the form from submitting normally
 
     // Create a new FormData object from the form
-    formData.append('questionNumber', question.id);
     var formData = new FormData(form);
 
     // Send a POST request to the server with the form data
-    fetch("http:4125", {
+    fetch("http://your-server-url.com/submit-answer", {
       method: "POST",
       body: formData,
     }).then(function (response) {

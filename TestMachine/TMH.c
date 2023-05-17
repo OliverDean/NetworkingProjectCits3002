@@ -107,7 +107,7 @@ int loadUser()
         return 0;
     else if (10 > QBcounter > 0) // If not 10 questions, error out
         return -1;
-    else if (QBcounter <= 0) // If somehow Qbcounter is below 0 (if we get here we are screwed)
+    else if (QBcounter <= 0) // If there are 10 or less questions error out
         return -1;
 }
 
@@ -241,7 +241,7 @@ void generatenewfile()
     char *buf = NULL;
     size_t linesize = 0;
     ssize_t linelen;
-    int counter = 0;
+    int counter = -1;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     user.user_filename = randomstring;
     FILE *fp = fopen(user.user_filename, "w"); // Create new user cookie file
@@ -274,15 +274,10 @@ void generatenewfile()
             if (!strcmp(buf, user.password))
             {
                 buf = strtok(NULL, ";");
-                if (*buf == '\n') 
-                {
-                    counter--;
-                }
-                else if (buf != NULL)
+                if (buf != NULL && strcmp(buf, "\n"))
                 { // If user has filename, re-write over it in the next step
                     printf("Found additional user cookie file: %s\n", buf);
                     counter -= sizeof(buf);
-                    counter -= 2; // Take into account the 2 lost ';'
                     remove(buf);
                 }
                 fseek(new, counter, SEEK_SET);             // Move up file pointer to end of line (after users password)
@@ -298,6 +293,7 @@ void generatenewfile()
             continue;
     }
     free(line);
+    free(buf);
     fclose(new);
     fclose(up);
     fclose(fp);
@@ -308,11 +304,11 @@ void generatenewfile()
 // Code for both question banks
 // They will share the same code, however pipe[] will be different for both QB's
 // Will automatically break out once connection is broken.
-void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
+void QuestionBanks(int QBsocket, int pipe[2])
 {
     while (1)
     {
-        char commandbuffer[32] = {0};
+        char commandbuffer[3] = {0};
         if (read(pipe[0], commandbuffer, 3) == -1) // Wait for instructions
         {
             perror("read");
@@ -323,41 +319,33 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             int temp = 0;
             char questionIDbuffer[32] = {0};
             char filename[9] = {0};
-            int length = 0;
             char *buf = NULL;
-            printf("Received gq request..\n");
             if (send(QBsocket, "GQ", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            memset(commandbuffer, 0, sizeof(commandbuffer));
-            sleep(0.01);
-            if (recv(QBsocket, &length, sizeof(int), 0) == -1)
+            if (recv(QBsocket, questionIDbuffer, 32, MSG_WAITALL) == -1) // Wait for random questionID's
             {
                 perror("recv");
             }
-            printf("Size of packet expected is: %d\n", ntohl(length));
-            if (recv(QBsocket, questionIDbuffer, ntohl(length), 0) == -1) // Wait for random questionID's
-            {
-                perror("recv");
-            }
-            questionIDbuffer[ntohl(length) + 1] = '\0';
-            printf("questionID buffer is: %s\n", questionIDbuffer);
-            if (read(pipe[0], filename, 9) == -1) // Send data to parent
+            if (read(pipe[0], filename, sizeof(filename)) == -1) // Send data to parent
             {
                 perror("read");
             }
-            printf("User file name is: %s\n", filename);
             user.user_filename = filename;
+            if (read(pipe[0], user.username, sizeof(user.username)) == -1) // Send data to parent
+            {
+                perror("read");
+            }
             FILE *ft = fopen(user.user_filename, "a"); // Open file in append mode
             if (ft == NULL)
             {
                 perror("fopen");
             }
             buf = strtok(questionIDbuffer, ";"); // Grab the questionID
-            while (buf != NULL)
+            for (int i = 0; i < 4; i++)
             {
-                fprintf(ft, "q;%s;%s;---;\n", QBversion, buf); // Add it to users cookie file
+                fprintf(ft, "q;c;%s;---;\n", buf); // Add it to users cookie file
                 buf = strtok(NULL, ";");
             }
             fclose(ft);
@@ -367,12 +355,13 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             printf("meant to answer here..\n");
             char *answer = "#include <stdio>\n\nint main(int argv, char *argv[]){\nprintf(\"Hello World!\");\nreturn 0;}";
             int length = sizeof(answer);
-            char *isAnswer = NULL;
+            int sendnumber = htonl(length);
+            char *isAnswer;
             if (send(QBsocket, "AN", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            if (send(QBsocket, &length, htonl(length), 0) == -1) // Send answer string size to QB
+            if (send(QBsocket, &sendnumber, sizeof(sendnumber), 0) == -1) // Send answer string size to QB
             {
                 perror("send");
             }
@@ -574,7 +563,7 @@ int main(int argc, char *argv[])
                 break;
             }
             printf("accepted connection from CQB\n");
-            QuestionBanks(newc_fd, cqbpipe, "c");
+            QuestionBanks(newc_fd, cqbpipe);
             close(newc_fd);
             close(cqbpipe[0]);
             close(cqbpipe[1]);
@@ -598,7 +587,8 @@ int main(int argc, char *argv[])
                 break;
             }
             printf("accepted connection from PQB\n");
-            QuestionBanks(newp_fd, pqbpipe, "python");
+            QuestionBanks(newp_fd, pqbpipe);
+            shutdown(newp_fd, SHUT_RDWR);
             close(newp_fd);
             close(pqbpipe[0]);
             close(pqbpipe[1]);
@@ -630,7 +620,7 @@ int main(int argc, char *argv[])
 
         //printf("1USERNAME: %s\n", username);
         //printf("1PASSWORD: %s\n", password);
-        /*
+            
         displaylogin(newtm_fd);
         char buffer[2500];
         recv(newtm_fd, buffer, sizeof(buffer),0);
@@ -639,10 +629,8 @@ int main(int argc, char *argv[])
         username[strcspn(username, "\r")] = '\0';
         password[strcspn(password, "\n")] = '\0';
         password[strcspn(password, "\r")] = '\0';
-        */
         //printf("2USERNAME: %s\n Length of USERNAME: %lu\n", username, strlen(username));
         //printf("2PASSWORD: %s\n Length of PASSWORD: %lu\n", password, strlen(password));
-
         switch (fork())
         {
         case -1:
@@ -652,47 +640,17 @@ int main(int argc, char *argv[])
         case 0:
             while (1)
             {
-                //close(tm_fd);
-                memset(username, 0, sizeof(username));
-                memset(password, 0, sizeof(password));
-                if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
-                    perror("send");
-                if (recv(newtm_fd, username, sizeof(username), 0) == -1)
-                    perror("recv");
-                if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
-                    perror("send");
-                if (recv(newtm_fd, password, sizeof(password), 0) == -1)
-                    perror("recv");
-                username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
-                username[strcspn(username, "\r")] = '\0';
-                password[strcspn(password, "\n")] = '\0';
-                password[strcspn(password, "\r")] = '\0';
-                //char *returnvalue;
-                //char httprequestvalue[2];
+                close(tm_fd);
+                char *returnvalue;
+                char httprequestvalue[2];
 
                 int loginValue = login(username, password, &user.user_filename);
-                if (loginValue == -1) // Invalid Username (doesn't exist)
-                {
-                    if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
-                        perror("send");
-                    continue;
-                }
-                else if (loginValue == -2) // File is broken
-                {
-                    goto nofile;
-                }
-                else if (loginValue == 1) // Invalid Password
-                {
-                    if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
-                        perror("send");
-                    continue;
-                }
 
                 int loadvalue = loadUser();
                 printf("load value: %i\n", loadvalue);
                 if (loadvalue == -1) // If file failed to open
                 {
-                    goto nofile;
+                    returnvalue = "NF";
                 }
                 else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
@@ -707,7 +665,8 @@ int main(int argc, char *argv[])
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
                     printf("success here\n");
-                    //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
+                    send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
+                    shutdown(newtm_fd, SHUT_RDWR);
                     close(newtm_fd);
                     close(cqbpipe[1]);
                     close(cqbpipe[0]);
@@ -715,12 +674,10 @@ int main(int argc, char *argv[])
                     close(pqbpipe[1]);
                     break;
                 }
-                else if (loadvalue != 0 || loginValue != 0) // Bad / No File
+                else if (!strcmp(returnvalue, "NF")) // Bad / No File
                 {
                 nofile:
                     generatenewfile();
-                    printf("Generated new cookiefile\n");
-                    printf("sending gq request\n");
                     if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
                     {
                         perror("write");
@@ -729,7 +686,10 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    printf("C QB success.\n");
+                    if (write(cqbpipe[1], user.username, sizeof(user.username)) == -1)
+                    {
+                        perror("write");
+                    }
                     if (write(pqbpipe[1], "GQ", 3) == -1) // Generate questions from Python QB
                     {
                         perror("write");
@@ -738,12 +698,16 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    printf("received gq requests.\n");
+                    if (write(pqbpipe[1], user.username, sizeof(user.username)) == -1)
+                    {
+                        perror("write");
+                    }
                     goto usersignedin;
                 }
             }
             break;
         default:
+            shutdown(newtm_fd, SHUT_RDWR);
             close(newtm_fd);
             break;
         }
