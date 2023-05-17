@@ -12,20 +12,18 @@ window.onload = function() {
 //; Individual file for 'Joel'
 //; First line being user, 'name'
 //; With questions being 'q - QB its from - questionID - amount of times attempted'
-//; either m for multi or t for coding
+
 // Joel;
-// q;m;python;a;NY-; 
-// q;t;c;a;---;
-// q;t;c;c;Y--;
-// q;m;c;d;NNN;
-// q;t;python;d;NNY;
-// q;m;python;f;---;
-// q;m;c;h;NNN;
-// q;m;python;e;Y--;
-// q;m;c;o;NY-;
-// q;m;c;l;NNY;
-
-
+// q;python;a;NY-; 
+// q;c;a;---;
+// q;c;c;Y--;
+// q;c;d;NNN;
+// q;python;d;NNY;
+// q;python;f;---;
+// q;c;h;NNN;
+// q;python;e;Y--;
+// q;c;o;NY-;
+// q;c;l;NNY;
 
 /**
  * Determine the status of a question based on the attempts string
@@ -36,10 +34,6 @@ function getStatus(attempts) {
     if (attempts.includes('Y')) return 'correct';
     if (attempts.includes('-')) return 'try';
     return 'incorrect';
-}
-
-function getQuestionType(type) {
-    return type === 't' ? 'coding' : 'multi';
 }
 
 /**
@@ -62,21 +56,17 @@ function getAttemptCount(attempts) {
  * @param {string} fileData - The file data to be parsed
  */
 function parseQuestions(fileData) {
-    //lines in the form of
-    //'q - QB its from -'m/t' - q type, questionID, - attempt data - 'Y' for correct, '-' for try, 'N' for incorrect
     var lines = fileData.split('\n');
     var questions = [];
     var userName = lines[0].split(';')[0];
     for (var i = 1; i < lines.length; i++) {
         var questionData = lines[i].split(';');
         if (questionData[0] === 'q') {
-            var status = getStatus(questionData[4]);
-            var questionType = getQuestionType(questionData[1]);
-            var attemptCount = getAttemptCount(questionData[4]);
+            var status = getStatus(questionData[3]);
+            var attemptCount = getAttemptCount(questionData[3]);
             questions.push({ 
                 user: userName,
-                type: questionData[2],
-                questionType: questionType,
+                type: questionData[1],
                 status: status,
                 attempt: attemptCount
             });
@@ -90,10 +80,7 @@ function parseQuestions(fileData) {
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${item.questionType}.html`;
-        //dynamically alocate the question number makes new html file for each question
-        //questionLink.href = `question_${item.questionType}${index + 1}.html`;
-
+        questionLink.href = `question_${index + 1}.html`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';
@@ -113,8 +100,6 @@ function parseQuestions(fileData) {
             questionAttempt.textContent = 'Not yet Attempted';
         else
             questionAttempt.textContent = `Attempted ${item.attempt} times`;
-
-        //Build the web page with the data
 
         questionLink.appendChild(questionNumber);
         questionLink.appendChild(questionType);

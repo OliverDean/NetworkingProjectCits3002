@@ -3,8 +3,13 @@
 #include <string.h>
 
 typedef struct {
+    char path[500];
+    char queryString[500];
+} Uri;
+
+typedef struct {
     char method[20];
-    char url[500];
+    Uri uri;
     char version[10];
 } RequestLine;
 
@@ -19,6 +24,24 @@ typedef struct {
     int headerCount;
 } HttpRequest;
 
+Uri parseUri(const char *uriString) {
+    Uri uri;
+    char copy[500];
+    strcpy(copy, uriString);
+
+    char *question = strchr(copy, '?');
+    if(question) {
+        *question = 0;
+        strcpy(uri.queryString, question + 1);
+    } else {
+        uri.queryString[0] = 0;
+    }
+
+    strcpy(uri.path, copy);
+
+    return uri;
+}
+
 HttpRequest parseHttpRequest(const char *request) {
     HttpRequest httpRequest;
     char copy[2000]; // Assumes that the request won't exceed 2000 characters
@@ -27,8 +50,10 @@ HttpRequest parseHttpRequest(const char *request) {
     char *line = strtok(copy, "\n");
 
     // Parse request line
-    sscanf(line, "%s %s %s", httpRequest.requestLine.method, httpRequest.requestLine.url, httpRequest.requestLine.version);
-    
+    char uriString[500];
+    sscanf(line, "%s %s %s", httpRequest.requestLine.method, uriString, httpRequest.requestLine.version);
+    httpRequest.requestLine.uri = parseUri(uriString);
+
     // Parse headers
     httpRequest.headerCount = 0;
     while(line = strtok(NULL, "\n")) {
@@ -49,9 +74,14 @@ HttpRequest parseHttpRequest(const char *request) {
 }
 
 int main() {
-    const char request[] = "GET /ClientBrowser/icon.jpg HTTP/1.0\n";
+    const char request[] = "GET /ClientBrowser/icon.jpg?size=100x100 HTTP/1.0\n";
 
     HttpRequest httpRequest = parseHttpRequest(request);
+
+    printf("Method: %s\n", httpRequest.requestLine.method);
+    printf("Path: %s\n", httpRequest.requestLine.uri.path);
+    printf("Query: %s\n", httpRequest.requestLine.uri.queryString);
+    printf("Version: %s\n", httpRequest.requestLine.version);
 
     return 0;
 }
