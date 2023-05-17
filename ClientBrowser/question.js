@@ -31,6 +31,7 @@ prevButton.addEventListener("click", function () {
     });
 });
 
+
 function loadQuestionScript(questionData) {
   // Determine the type of question from the second line of the response
   var type = questionData.split("\n")[1];

@@ -669,7 +669,8 @@ int main(int argc, char *argv[])
                 password[strcspn(password, "\r")] = '\0';
                 //char *returnvalue;
                 //char httprequestvalue[2];
-
+                printf("USERNAME: %s\n", username);
+                printf("PASS: %s\n", password);
                 int loginValue = login(username, password, &user.user_filename);
                 if (loginValue == -1) // Invalid Username (doesn't exist)
                 {
