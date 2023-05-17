@@ -1,52 +1,35 @@
-window.onload = function() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'userTest.txt', true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4 && xhr.status == 200)
-            parseQuestions(xhr.responseText);
-    }
-    xhr.send(null);
-}
 
 //using this form 
 //; Individual file for 'Joel'
 //; First line being user, 'name'
 //; With questions being 'q - QB its from - questionID - amount of times attempted'
-//; either m for multi or t for coding
-// Joel;
-// q;m;python;a;NY-; 
-// q;t;c;a;---;
-// q;t;c;c;Y--;
-// q;m;c;d;NNN;
-// q;t;python;d;NNY;
-// q;m;python;f;---;
-// q;m;c;h;NNN;
-// q;m;python;e;Y--;
-// q;m;c;o;NY-;
-// q;m;c;l;NNY;
+// filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
+
+window.onload = function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'user_cookie_file.txt', true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200)
+            var questions = parseQuestions(xhr.responseText); // Store the returned questions
+            displayQuestions(questions); // Call a new function that will handle displaying the questions
+    }
+    xhr.send(null);
+}
 
 
+window.onload = function() {
+    var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
+    var questions = parseQuestions(filedata); // Parse the filedata string
+    displayQuestions(questions); // Display the parsed questions
+}
 
-/**
- * Determine the status of a question based on the attempts string
- * @param {string} attempts - The attempts string for a question
- * @returns {string} - The status of the question: 'correct', 'try', or 'incorrect'
- */
+
 function getStatus(attempts) {
     if (attempts.includes('Y')) return 'correct';
     if (attempts.includes('-')) return 'try';
     return 'incorrect';
 }
 
-function getQuestionType(type) {
-    return type === 't' ? 'coding' : 'multi';
-}
-
-/**
- * Count the number of attempts made on a question
- * @param {string} attempts - The attempts string for a question
- * @returns {number} - The number of attempts made on the question
- */
 function getAttemptCount(attempts) {
     var count = 0;
     for (var i = 0; i < attempts.length; i++) {
@@ -57,32 +40,30 @@ function getAttemptCount(attempts) {
     return count;
 }
 
-/**
- * Parse the questions from the file data
- * @param {string} fileData - The file data to be parsed
- */
 function parseQuestions(fileData) {
-    //lines in the form of
-    //'q - QB its from -'m/t' - q type, questionID, - attempt data - 'Y' for correct, '-' for try, 'N' for incorrect
-    var lines = fileData.split('\n');
+    var elements = fileData.split(';');
     var questions = [];
-    var userName = lines[0].split(';')[0];
-    for (var i = 1; i < lines.length; i++) {
-        var questionData = lines[i].split(';');
+    var userName = elements.shift(); // Get the user's name from the first element
+
+    // Each question is defined by four elements
+    while (elements.length >= 4) {
+        var questionData = elements.splice(0, 4); // Get the next four elements
         if (questionData[0] === 'q') {
-            var status = getStatus(questionData[4]);
-            var questionType = getQuestionType(questionData[1]);
-            var attemptCount = getAttemptCount(questionData[4]);
-            questions.push({ 
+            var status = getStatus(questionData[3]);
+            var attemptCount = getAttemptCount(questionData[3]);
+            questions.push({
                 user: userName,
-                type: questionData[2],
-                questionType: questionType,
+                type: questionData[1],
+                id: questionData[2],
                 status: status,
                 attempt: attemptCount
             });
         }
     }
+    return questions;
+}
 
+function displayQuestions(questions) { // New function to handle displaying the questions
     var questionGrid = document.querySelector('.question-grid');
     questions.forEach((item, index) => {
         var questionBox = document.createElement('div');
@@ -90,14 +71,11 @@ function parseQuestions(fileData) {
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${item.questionType}.html`;
-        //dynamically alocate the question number makes new html file for each question
-        //questionLink.href = `question_${item.questionType}${index + 1}.html`;
-
+        questionLink.href = `question_${item.id}.html`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';
-        questionNumber.textContent = `Question ${index + 1}`;
+        questionNumber.textContent = `Question ${index+1}`;
 
         var questionType = document.createElement('div');
         questionType.className = 'question-type';
@@ -113,8 +91,6 @@ function parseQuestions(fileData) {
             questionAttempt.textContent = 'Not yet Attempted';
         else
             questionAttempt.textContent = `Attempted ${item.attempt} times`;
-
-        //Build the web page with the data
 
         questionLink.appendChild(questionNumber);
         questionLink.appendChild(questionType);
