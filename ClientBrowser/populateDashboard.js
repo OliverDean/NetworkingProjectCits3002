@@ -7,7 +7,7 @@
 
 // window.onload = function() {
 //     var xhr = new XMLHttpRequest();
-//     xhr.open('GET', 'userTest.txt', true);
+//     xhr.open('GET', 'user_cookie_file.txt', true);
 //     xhr.onreadystatechange = function () {
 //         if (xhr.readyState == 4 && xhr.status == 200)
 //             var questions = parseQuestions(xhr.responseText); // Store the returned questions
