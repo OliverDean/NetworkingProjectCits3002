@@ -12,18 +12,7 @@ window.onload = function() {
 //; Individual file for 'Joel'
 //; First line being user, 'name'
 //; With questions being 'q - QB its from - questionID - amount of times attempted'
-
-// Joel;
-// q;python;a;NY-; 
-// q;c;a;---;
-// q;c;c;Y--;
-// q;c;d;NNN;
-// q;python;d;NNY;
-// q;python;f;---;
-// q;c;h;NNN;
-// q;python;e;Y--;
-// q;c;o;NY-;
-// q;c;l;NNY;
+filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
 
 /**
  * Determine the status of a question based on the attempts string
@@ -67,6 +56,7 @@ function parseQuestions(fileData) {
             questions.push({ 
                 user: userName,
                 type: questionData[1],
+                id: questionData[2],
                 status: status,
                 attempt: attemptCount
             });
@@ -74,17 +64,17 @@ function parseQuestions(fileData) {
     }
 
     var questionGrid = document.querySelector('.question-grid');
-    questions.forEach((item, index) => {
+    questions.forEach((item) => {
         var questionBox = document.createElement('div');
         questionBox.className = 'question-box';
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${index + 1}.html`;
+        questionLink.href = `question_${item.id}.html`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';
-        questionNumber.textContent = `Question ${index + 1}`;
+        questionNumber.textContent = `Question ${item.id}`;
 
         var questionType = document.createElement('div');
         questionType.className = 'question-type';
