@@ -308,7 +308,7 @@ void generatenewfile()
 // Code for both question banks
 // They will share the same code, however pipe[] will be different for both QB's
 // Will automatically break out once connection is broken.
-void QuestionBanks(int QBsocket, int pipe[2])
+void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 {
     while (1)
     {
@@ -323,6 +323,7 @@ void QuestionBanks(int QBsocket, int pipe[2])
             int temp = 0;
             char questionIDbuffer[32] = {0};
             char filename[9] = {0};
+            int length = 0;
             char *buf = NULL;
             printf("Received gq request..\n");
             if (send(QBsocket, "GQ", 2, 0) == -1) // Send QB what it needs to prep for
@@ -331,10 +332,16 @@ void QuestionBanks(int QBsocket, int pipe[2])
             }
             memset(commandbuffer, 0, sizeof(commandbuffer));
             sleep(0.01);
-            if (recv(QBsocket, questionIDbuffer, 32, MSG_WAITALL) == -1) // Wait for random questionID's
+            if (recv(QBsocket, &length, sizeof(int), 0) == -1)
             {
                 perror("recv");
             }
+            printf("Size of packet expected is: %d\n", ntohl(length));
+            if (recv(QBsocket, questionIDbuffer, ntohl(length), 0) == -1) // Wait for random questionID's
+            {
+                perror("recv");
+            }
+            questionIDbuffer[ntohl(length) + 1] = '\0';
             printf("questionID buffer is: %s\n", questionIDbuffer);
             if (read(pipe[0], filename, 9) == -1) // Send data to parent
             {
@@ -350,7 +357,7 @@ void QuestionBanks(int QBsocket, int pipe[2])
             buf = strtok(questionIDbuffer, ";"); // Grab the questionID
             while (buf != NULL)
             {
-                fprintf(ft, "q;c;%s;---;\n", buf); // Add it to users cookie file
+                fprintf(ft, "q;%s;%s;---;\n", QBversion, buf); // Add it to users cookie file
                 buf = strtok(NULL, ";");
             }
             fclose(ft);
@@ -568,7 +575,7 @@ int main(int argc, char *argv[])
                 break;
             }
             printf("accepted connection from CQB\n");
-            QuestionBanks(newc_fd, cqbpipe);
+            QuestionBanks(newc_fd, cqbpipe, "c");
             close(newc_fd);
             close(cqbpipe[0]);
             close(cqbpipe[1]);
@@ -592,7 +599,7 @@ int main(int argc, char *argv[])
                 break;
             }
             printf("accepted connection from PQB\n");
-            QuestionBanks(newp_fd, pqbpipe);
+            QuestionBanks(newp_fd, pqbpipe, "python");
             close(newp_fd);
             close(pqbpipe[0]);
             close(pqbpipe[1]);

@@ -46,6 +46,7 @@ def generate_questions(s, question_dict):
         # Join the question IDs with a semicolon
         question_ids = ";".join(str(id) for id in question_dict.keys())
         print(question_ids)
+        question_ids += ";"
         # Encode the string to bytes (required for sending via socket)
         question_ids = question_ids.encode()
         # Send the question IDs
