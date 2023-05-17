@@ -16,7 +16,7 @@
 #define TMPORT "4125"
 #define PQBPORT "4126"
 #define CQBPORT "4127"
-#define BACKLOG 10
+#define BACKLOG 25
 
 typedef struct curUser
 {
@@ -159,51 +159,138 @@ char *randomStringGenerator()
 
 // Logs user in, Returns 0 on success,
 // 1 on password failure, returns -1 on login failure, returns -2 if user file is missing
-int login(char username[], char password[], char **filename)
-{
+// int login(const char* username, const char* password, char** filename)
+// {
+//     FILE* fpa = fopen("users.txt", "r");
+//     if (fpa == NULL) {
+//         return -2; // Cannot open file
+//     }
 
-    char temp[32];
-    char *line = NULL;
-    char *buf;
+//     char* line = NULL;
+//     size_t linesize = 0;
+//     ssize_t linelen;
+//     int result = -1; // Default return value for login failure
+
+//     while ((linelen = getline(&line, &linesize, fpa)) != -1) {
+//         char* buf = strtok(line, ";");
+
+//         // If comment line or username does not match, skip this line
+//         if (strcmp(buf, "//") == 0 || strcasecmp(buf, username) != 0) {
+//             continue;
+//         }
+
+//         char temp[32];
+//         strncpy(temp, buf, sizeof(temp) - 1);
+//         buf = strtok(NULL, ";");
+
+//         if (strcmp(buf, password) == 0) { // If passwords match
+//             curUser user;
+
+//             strncpy(user.password, buf, sizeof(user.password) - 1);
+//             strncpy(user.username, temp, sizeof(user.username) - 1);
+
+//             buf = strtok(NULL, ";");
+//             if (buf == NULL) {
+//                 result = -2; // User file is missing
+//                 break;
+//             }
+
+//             *filename = malloc(1024);
+//             if (*filename == NULL) {
+//                 result = -2; // Memory allocation failure
+//                 break;
+//             }
+
+//             strncpy(*filename, buf, 1023);
+//             user.user_filename = *filename; // Assign the filename to the user structure
+
+//             // Other initialization for the user structure can be done here if needed
+
+//             result = 0; // Login success
+//             break;
+//         }
+//         else {
+//             result = 1; // Password failure
+//             break;
+//         }
+//     }
+
+//     free(line);
+//     fclose(fpa);
+//     return result;
+// }
+
+
+int login(const char* username, const char* password, char** filename)
+{
+    FILE* fpa = fopen("users.txt", "r");
+    if (fpa == NULL) {
+        printf("Cannot open file\n");
+        return -2; // Cannot open file
+    }
+
+    char* line = NULL;
     size_t linesize = 0;
     ssize_t linelen;
-    int counter = 0;
-    FILE *fpa = fopen("users.txt", "r");
+    int result = -1; // Default return value for login failure
 
-    while ((linelen = getline(&line, &linesize, fpa)) != -1)
-    {
-        buf = strtok(line, ";");
-        if (!strcmp(buf, "//")) // If comment line
+    while ((linelen = getline(&line, &linesize, fpa)) != -1) {
+        char* buf = strtok(line, ";");
+
+        // If comment line or username does not match, skip this line
+        if (strcmp(buf, "//") == 0 || strcasecmp(buf, username) != 0) {
             continue;
-        if (!strcasecmp(buf, username))
-        { // If strings equal (ignoring case-sensitive for username)
-            strcpy(temp, buf);
-            buf = strtok(NULL, ";");
-            if (!strcmp(buf, password))
-            { // If passwords equal (must be case-sensitive)
-                strcpy(user.password, buf);
-                strcpy(user.username, temp);
-                buf = strtok(NULL, ";");
-                if (buf == NULL)
-                {
-                    return -2;
-                }
-                char *temp = malloc(1024);
-                strcpy(temp, buf);
-                *filename = temp;
-                fclose(fpa);
-                return 0;
-            }
-            else
-            {
-                return 1;
-            }
         }
-        else
-            continue;
+
+        char temp[32];
+        strncpy(temp, buf, sizeof(temp) - 1);
+        buf = strtok(NULL, ";");
+
+        if (strcmp(buf, password) == 0) { // If passwords match
+            curUser user;
+
+            strncpy(user.password, buf, sizeof(user.password) - 1);
+            strncpy(user.username, temp, sizeof(user.username) - 1);
+
+            buf = strtok(NULL, ";");
+            if (buf == NULL) {
+                printf("User file is missing\n");
+                result = -2; // User file is missing
+                break;
+            }
+
+            *filename = malloc(1024);
+            if (*filename == NULL) {
+                printf("Memory allocation failure\n");
+                result = -2; // Memory allocation failure
+                break;
+            }
+
+            strncpy(*filename, buf, 1023);
+            user.user_filename = *filename; // Assign the filename to the user structure
+
+            // Other initialization for the user structure can be done here if needed
+
+            printf("Login successful!\n");
+            printf("Username: %s\n", user.username);
+            printf("Password: %s\n", user.password);
+            printf("Filename: %s\n", user.user_filename);
+
+            result = 0; // Login success
+            break;
+        }
+        else {
+            printf("Password failure\n");
+            result = 1; // Password failure
+            break;
+        }
     }
-    return -1;
+
+    free(line);
+    fclose(fpa);
+    return result;
 }
+
 
 const char* getContentTypeString(ContentType contentType) {
     switch(contentType) {
@@ -526,8 +613,6 @@ void QuestionBanks(int QBsocket, int pipe[2])
 }
 
 
-
-
 void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[128];
@@ -641,27 +726,28 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
         filePath = "./ClientBrowser/icon.jpg";
         contentType = JPEG;
         sendImageResponse(socket_fd, filePath, contentType);
-    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateDashboard.js") == 0) {
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/populateDashboard.js") == 0) {
         filePath = "./ClientBrowser/populateDashboard.js";
         contentType = JS;
-    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateQuestion.js") == 0) {
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestion.js") == 0) {
         filePath = "./ClientBrowser/populateQuestion.js";
         contentType = JS;
-    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateQuestionCoding.js") == 0) {
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestionCoding.js") == 0) {
         filePath = "./ClientBrowser/populateQuestionCoding.js";
         contentType = JS;
-    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/question.js") == 0) {
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
     } else {
         // Handle file not found error
-        sendHttpResponse(socket_fd, "404.html", HTML);
+        sendHttpResponse(socket_fd, "/error.html", HTML);
         return;
     }
 
     // Send the HTTP response with the appropriate file
     sendHttpResponse(socket_fd, filePath, contentType);
 }
+
 
 void displaylogin(int newtm_fd) {
     char buffer[3000];
@@ -679,32 +765,77 @@ void displaylogin(int newtm_fd) {
     // Extract the username and password from the query string
     char username[500] = {0};
     char password[500] = {0};
+    int hasUsername = 0;
+    int hasPassword = 0;
+    if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
+        char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
+        char *pair = strtok(queryCopy, "&");
+        printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
 
-    char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
-    char *pair = strtok(queryCopy, "&");
+        while (pair != NULL) {
+            char *key = strtok(pair, "=");
+            char *value = strtok(NULL, "=");
 
-    while (pair != NULL) {
-        char *key = strtok(pair, "=");
-        char *value = strtok(NULL, "=");
-        
-        if (key != NULL && value != NULL) {
+            if (key != NULL && value != NULL) {
+                printf("Key: %s\n", key);
+                printf("Value: %s\n", value);
+
+
             if (strcmp(key, "username") == 0) {
                 strncpy(username, value, sizeof(username) - 1);
+                hasUsername = 1;
+                printf("Username: %s\n", username);
             } else if (strcmp(key, "password") == 0) {
                 strncpy(password, value, sizeof(password) - 1);
+                password[sizeof(password) - 1] = '\0';
+                hasPassword = 1;
+                printf("Password: %s\n", password);
+            } else {
+                printf("Key: %s\n", key);
+                printf("Value: %s\n", value);
             }
-        }
-        pair = strtok(NULL, "&");
-    }
-    free(queryCopy);
 
-    // Print the extracted username and password for debugging
+
+
+            }
+            pair = strtok(NULL, "&");
+        }
+        free(queryCopy);
+    }
     printf("Username: %s\n", username);
     printf("Password: %s\n", password);
+    printf("Has username: %d\n", hasUsername);
+    printf("Has password: %d\n", hasPassword);
+
+
+
+    // Only attempt login if both username and password are present in the query string
+    if (hasUsername && hasPassword) {
+        char *filename = NULL;
+        curUser user;
+        printf("Attempting login...\n");
+        int login_result = login(username, password, &filename);
+        if (login_result == 0) {
+            user.user_filename = filename;
+            printf("Login successful!\n");
+            printf("Username: %s\n", user.username);
+            printf("Password: %s\n", user.password);
+            printf("Filename: %s\n", user.user_filename);
+            
+            // Redirect to the question dashboard
+            HttpRequest httpRequest;
+            strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
+            handleRequest(newtm_fd, httpRequest);
+        } else {
+            printf("Login failed with error code: %d\n", login_result);
+        }
+    }
 
     // Send the login page as the HTTP response
     handleRequest(newtm_fd, httpRequest);
 }
+
+
 
 
 
@@ -735,51 +866,51 @@ void displaylogin(int newtm_fd) {
 //     free(fullhttp);
 // }
 
-void setUser(char *buffer, char username[32], char password[32])
-{
-        char *pch;
-        pch = strtok(buffer, "?=&" );
-        char *previous = pch;
-        while (pch != NULL) 
-        {
+// void setUser(char *buffer, char username[32], char password[32])
+// {
+//         char *pch;
+//         pch = strtok(buffer, "?=&" );
+//         char *previous = pch;
+//         while (pch != NULL) 
+//         {
 
-            pch=strtok(NULL, " ? = & ");
-            if (strcmp(previous, "username") == 0)
-            {
-                strcpy(username, pch);
-            }
+//             pch=strtok(NULL, " ? = & ");
+//             if (strcmp(previous, "username") == 0)
+//             {
+//                 strcpy(username, pch);
+//             }
 
-            if (strcmp(previous, "password") == 0)
-            {
-                strcpy(password, pch);
-                break;
-            }
-            previous = pch;
-        }
-        // int count = 0;
-        // for (int i =0; i < strlen(password); i++)
-        // {
-        //     if (password[i] != '\n' || password[i] != '\r' || password[i] != '\0')
-        //     {
-        //         printf("\t%c\n", password[i]);
-        //     }
-        // }
-}
+//             if (strcmp(previous, "password") == 0)
+//             {
+//                 strcpy(password, pch);
+//                 break;
+//             }
+//             previous = pch;
+//         }
+//         // int count = 0;
+//         // for (int i =0; i < strlen(password); i++)
+//         // {
+//         //     if (password[i] != '\n' || password[i] != '\r' || password[i] != '\0')
+//         //     {
+//         //         printf("\t%c\n", password[i]);
+//         //     }
+//         // }
+// }
 
-char *questionDashboard()
-{
-    char *returnString;
-    FILE *fp;
-    fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
-    if (fp == NULL) {perror("html file");}
-    char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
-    char line[180];
-    while (fgets(line, sizeof(line), fp))
-    {
-        returnString = strcat(header, line);
-    };
-    return returnString;
-}
+// char *questionDashboard()
+// {
+//     char *returnString;
+//     FILE *fp;
+//     fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
+//     if (fp == NULL) {perror("html file");}
+//     char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
+//     char line[180];
+//     while (fgets(line, sizeof(line), fp))
+//     {
+//         returnString = strcat(header, line);
+//     };
+//     return returnString;
+// }
 
 int main(int argc, char *argv[])
 {
@@ -893,20 +1024,16 @@ int main(int argc, char *argv[])
         memset(username, 0, sizeof(username));
         memset(password, 0, sizeof(password));
 
-        //printf("1USERNAME: %s\n", username);
-        //printf("1PASSWORD: %s\n", password);
         printf("accepted connection from TM\n");
         displaylogin(newtm_fd);
         printf("after display login\n");
-        // char buffer[2500];
-        // recv(newtm_fd, buffer, sizeof(buffer),0);
-        // setUser(buffer, username, password);
-        // username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
-        // username[strcspn(username, "\r")] = '\0';
-        // password[strcspn(password, "\n")] = '\0';
-        // password[strcspn(password, "\r")] = '\0';
-        //printf("2USERNAME: %s\n Length of USERNAME: %lu\n", username, strlen(username));
-        //printf("2PASSWORD: %s\n Length of PASSWORD: %lu\n", password, strlen(password));
+        char buffer[2500];
+        recv(newtm_fd, buffer, sizeof(buffer),0);
+        //setUser(buffer, username, password);
+        username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+        username[strcspn(username, "\r")] = '\0';
+        password[strcspn(password, "\n")] = '\0';
+        password[strcspn(password, "\r")] = '\0';
 
         switch (fork())
         {
@@ -942,7 +1069,7 @@ int main(int argc, char *argv[])
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
                     printf("success here\n");
-                    send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
+                    //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     shutdown(newtm_fd, SHUT_RDWR);
                     close(newtm_fd);
                     close(cqbpipe[1]);
