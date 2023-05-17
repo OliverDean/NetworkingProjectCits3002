@@ -4,7 +4,7 @@ var prevButton = document.querySelector(".prev-question");
 
 
 nextButton.addEventListener("click", function () {
-  fetch("http:4125", {
+  fetch("http:/ClientBrowser/`question_${index - 1}.html`", {
     method: "GET",
   })
     .then(response => response.text())
@@ -18,7 +18,7 @@ nextButton.addEventListener("click", function () {
 });
 
 prevButton.addEventListener("click", function () {
-  fetch("http:4125", {
+  fetch("http:/ClientBrowser/`question_${index + 1}.html`", {
     method: "GET",
   })
     .then(response => response.text())
