@@ -620,7 +620,7 @@ int main(int argc, char *argv[])
 
         //printf("1USERNAME: %s\n", username);
         //printf("1PASSWORD: %s\n", password);
-            
+        /*
         displaylogin(newtm_fd);
         char buffer[2500];
         recv(newtm_fd, buffer, sizeof(buffer),0);
@@ -629,8 +629,10 @@ int main(int argc, char *argv[])
         username[strcspn(username, "\r")] = '\0';
         password[strcspn(password, "\n")] = '\0';
         password[strcspn(password, "\r")] = '\0';
+        */
         //printf("2USERNAME: %s\n Length of USERNAME: %lu\n", username, strlen(username));
         //printf("2PASSWORD: %s\n Length of PASSWORD: %lu\n", password, strlen(password));
+
         switch (fork())
         {
         case -1:
@@ -640,9 +642,23 @@ int main(int argc, char *argv[])
         case 0:
             while (1)
             {
-                close(tm_fd);
-                char *returnvalue;
-                char httprequestvalue[2];
+                //close(tm_fd);
+                memset(username, 0, sizeof(username));
+                memset(password, 0, sizeof(password));
+                if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(newtm_fd, username, sizeof(username), 0) == -1)
+                    perror("recv");
+                if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(newtm_fd, password, sizeof(password), 0) == -1)
+                    perror("recv");
+                username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+                username[strcspn(username, "\r")] = '\0';
+                password[strcspn(password, "\n")] = '\0';
+                password[strcspn(password, "\r")] = '\0';
+                //char *returnvalue;
+                //char httprequestvalue[2];
 
                 int loginValue = login(username, password, &user.user_filename);
                 if (loginValue == -1) // Invalid Username (doesn't exist)
@@ -666,7 +682,7 @@ int main(int argc, char *argv[])
                 printf("load value: %i\n", loadvalue);
                 if (loadvalue == -1) // If file failed to open
                 {
-                    returnvalue = "NF";
+                    goto nofile;
                 }
                 else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
@@ -690,7 +706,7 @@ int main(int argc, char *argv[])
                     close(pqbpipe[1]);
                     break;
                 }
-                else if (!strcmp(returnvalue, "NF")) // Bad / No File
+                else if (loadvalue != 0 || loginValue != 0) // Bad / No File
                 {
                 nofile:
                     generatenewfile();
@@ -723,7 +739,6 @@ int main(int argc, char *argv[])
             }
             break;
         default:
-            shutdown(newtm_fd, SHUT_RDWR);
             close(newtm_fd);
             break;
         }
