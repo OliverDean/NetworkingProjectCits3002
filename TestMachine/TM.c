@@ -293,7 +293,6 @@ void generatenewfile()
             continue;
     }
     free(line);
-    free(buf);
     fclose(new);
     fclose(up);
     fclose(fp);
@@ -697,8 +696,7 @@ int main(int argc, char *argv[])
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
                     printf("success here\n");
-                    send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
-                    shutdown(newtm_fd, SHUT_RDWR);
+                    //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     close(newtm_fd);
                     close(cqbpipe[1]);
                     close(cqbpipe[0]);
