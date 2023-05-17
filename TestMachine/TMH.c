@@ -31,6 +31,35 @@ typedef struct curUser
     char *user_filename;
 } curUser;
 
+typedef struct {
+    char path[500];
+    char queryString[500];
+} Uri;
+
+typedef struct {
+    char method[20];
+    Uri uri;
+    char version[10];
+} RequestLine;
+
+typedef struct {
+    char fieldname[500];
+    char value[500];
+} HeaderField;
+
+typedef struct {
+    RequestLine requestLine;
+    HeaderField headers[50];
+    int headerCount;
+} HttpRequest;
+
+typedef enum {
+    HTML,
+    CSS,
+    JS,
+    JPEG
+} ContentType;
+
 curUser user;
 
 // Loads user data into structure
@@ -174,6 +203,68 @@ int login(char username[], char password[], char **filename)
             continue;
     }
     return -1;
+}
+
+const char* getContentTypeString(ContentType contentType) {
+    switch(contentType) {
+        case HTML: return "text/html";
+        case CSS: return "text/css";
+        case JS: return "application/javascript";
+        case JPEG: return "image/jpeg";
+        default: return "text/plain";
+    }
+}
+
+
+// function to parse the url in a http request for login page
+Uri parseUri(const char *uriString) {
+    Uri uri;
+    char copy[500];
+    strcpy(copy, uriString);
+
+    char *question = strchr(copy, '?');
+    if(question) {
+        *question = 0;
+        strcpy(uri.queryString, question + 1);
+    } else {
+        uri.queryString[0] = 0;
+    }
+
+    strcpy(uri.path, copy);
+
+    return uri;
+}
+
+// Function to parse the http request by parsing the request line and headers
+HttpRequest parseHttpRequest(const char *request) {
+    HttpRequest httpRequest;
+    char copy[20000]; // Assumes that the request won't exceed 20000 characters
+    strcpy(copy, request); // Make a copy because strtok modifies the string
+
+    char *line = strtok(copy, "\n");
+
+    // Parse request line
+    char uriString[500];
+    sscanf(line, "%s %s %s", httpRequest.requestLine.method, uriString, httpRequest.requestLine.version);
+    httpRequest.requestLine.uri = parseUri(uriString);
+
+    // Parse headers
+    httpRequest.headerCount = 0;
+    while(line = strtok(NULL, "\n")) {
+        if(strlen(line) < 2) { // this is an empty line, end of headers
+            break;
+        }
+
+        char *colon = strchr(line, ':');
+        if(colon) {
+            *colon = 0; // replace colon with null-terminator
+            strcpy(httpRequest.headers[httpRequest.headerCount].fieldname, line);
+            strcpy(httpRequest.headers[httpRequest.headerCount].value, colon + 2); // skip colon and space
+            httpRequest.headerCount++;
+        }
+    }
+
+    return httpRequest;
 }
 
 // Returns 0 on success, -1 on failure
@@ -433,32 +524,216 @@ void QuestionBanks(int QBsocket, int pipe[2])
     close(pipe[0]);
     close(pipe[1]);
 }
-void displaylogin(int newtm_fd) {
-    char buffer[3000];
-    int length = 0;
-    char *logintext = NULL;
-    char *fullhttp = NULL;
-    read(newtm_fd, buffer, 3000);
-    char *header = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: "; // Default header
-    FILE *loginfile = fopen("./ClientBrowser/login.html", "r"); // Open login.html
-    if (loginfile == NULL)
-    {
+
+
+
+
+void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
+    const char *contentTypeString = getContentTypeString(contentType);
+    char header[128];
+    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nContent-Length: ", contentTypeString);
+
+    char *fileText = NULL;
+    FILE *file = fopen(filePath, "r");
+    if (file == NULL) {
         perror("fopen");
+        return;
     }
-    fseek(loginfile, 0, SEEK_END);
-    length = ftell(loginfile); // Grab file length
-    fseek(loginfile, 0, SEEK_SET);
-    logintext = (char*)malloc((length) * sizeof(char));       // Buffer for file
-    fread(logintext, sizeof(char), length, loginfile); // Grab entire file
-    int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
-    fullhttp = malloc(sizeof(char) * total_length);
-    // printf("%s\n", logintext);
-    snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
-    fclose(loginfile);
-    write(newtm_fd, fullhttp, strlen(fullhttp));
-    free(logintext);
+
+    // Get the length of the file
+    fseek(file, 0, SEEK_END);
+    int length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Read the file into a buffer
+    fileText = (char*)malloc(length * sizeof(char));
+    fread(fileText, sizeof(char), length, file);
+
+    // Construct the full HTTP response
+    int total_length = strlen(header) + strlen(fileText) + (sizeof(char) * 12);
+    char *fullhttp = malloc(sizeof(char) * total_length);
+    snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
+
+    // Send the HTTP response
+    write(socket_fd, fullhttp, strlen(fullhttp));
+
+    // Clean up
+    fclose(file);
+    free(fileText);
     free(fullhttp);
 }
+
+void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType) {
+    const char *contentTypeString = getContentTypeString(contentType);
+    char header[128];
+    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\n\n", contentTypeString);
+
+    FILE *file = fopen(filePath, "rb");
+    if (file == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    // Get the length of the file
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    // Allocate a buffer for the image data
+    unsigned char *imageData = (unsigned char*)malloc(length * sizeof(unsigned char));
+    if (imageData == NULL) {
+        fclose(file);
+        perror("malloc");
+        return;
+    }
+
+    // Read the image data into the buffer
+    size_t bytesRead = fread(imageData, sizeof(unsigned char), length, file);
+    if (bytesRead != length) {
+        fclose(file);
+        free(imageData);
+        perror("fread");
+        return;
+    }
+
+    // Send the HTTP response header
+    write(socket_fd, header, strlen(header));
+
+    // Send the image data as the response body
+    size_t bytesSent = send(socket_fd, imageData, length, 0);
+    if (bytesSent != length) {
+        perror("send");
+    }
+
+    // Clean up
+    fclose(file);
+    free(imageData);
+}
+
+
+void handleRequest(int socket_fd, HttpRequest httpRequest) {
+    // Determine the file path based on the request
+    const char *filePath = NULL;
+    ContentType contentType = HTML;
+
+    if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
+        filePath = "./ClientBrowser/login.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/login") == 0) {
+        filePath = "./ClientBrowser/login.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/logout") == 0) {
+        filePath = "./ClientBrowser/logout.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/question_coding") == 0) {
+        filePath = "./ClientBrowser/question_coding.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/question_multi") == 0) {
+        filePath = "./ClientBrowser/question_multi.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/question_dashboard") == 0) {
+        filePath = "./ClientBrowser/question_dashboard.html";
+        contentType = HTML;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/styles.css") == 0) {
+        filePath = "./ClientBrowser/styles.css";
+        contentType = CSS;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/icon.jpg") == 0) {
+        filePath = "./ClientBrowser/icon.jpg";
+        contentType = JPEG;
+        sendImageResponse(socket_fd, filePath, contentType);
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateDashboard.js") == 0) {
+        filePath = "./ClientBrowser/populateDashboard.js";
+        contentType = JS;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateQuestion.js") == 0) {
+        filePath = "./ClientBrowser/populateQuestion.js";
+        contentType = JS;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/populateQuestionCoding.js") == 0) {
+        filePath = "./ClientBrowser/populateQuestionCoding.js";
+        contentType = JS;
+    } else if (strcmp(httpRequest.requestLine.uri.path, "/ClientBrowser/question.js") == 0) {
+        filePath = "./ClientBrowser/question.js";
+        contentType = JS;
+    } else {
+        // Handle file not found error
+        sendHttpResponse(socket_fd, "404.html", HTML);
+        return;
+    }
+
+    // Send the HTTP response with the appropriate file
+    sendHttpResponse(socket_fd, filePath, contentType);
+}
+
+void displaylogin(int newtm_fd) {
+    char buffer[3000];
+    read(newtm_fd, buffer, 3000);
+
+    // Parse the HTTP request
+    HttpRequest httpRequest = parseHttpRequest(buffer);
+
+    // Print the request method, path, query, and version for debugging
+    printf("Method: %s\n", httpRequest.requestLine.method);
+    printf("Path: %s\n", httpRequest.requestLine.uri.path);
+    printf("Query: %s\n", httpRequest.requestLine.uri.queryString);
+    printf("Version: %s\n", httpRequest.requestLine.version);
+
+    // Extract the username and password from the query string
+    char username[500] = {0};
+    char password[500] = {0};
+
+    char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
+    char *pair = strtok(queryCopy, "&");
+
+    while (pair != NULL) {
+        char *key = strtok(pair, "=");
+        char *value = strtok(NULL, "=");
+        
+        if (key != NULL && value != NULL) {
+            if (strcmp(key, "username") == 0) {
+                strncpy(username, value, sizeof(username) - 1);
+            } else if (strcmp(key, "password") == 0) {
+                strncpy(password, value, sizeof(password) - 1);
+            }
+        }
+        pair = strtok(NULL, "&");
+    }
+    free(queryCopy);
+
+    // Print the extracted username and password for debugging
+    printf("Username: %s\n", username);
+    printf("Password: %s\n", password);
+
+    // Send the login page as the HTTP response
+    handleRequest(newtm_fd, httpRequest);
+}
+
+
+
+// void displaylogin(int newtm_fd) {
+//     char buffer[3000];
+//     int length = 0;
+//     char *logintext = NULL;
+//     char *fullhttp = NULL;
+//     read(newtm_fd, buffer, 3000);
+//     char *header = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: "; // Default header
+//     FILE *loginfile = fopen("./ClientBrowser/login.html", "r"); // Open login.html
+//     if (loginfile == NULL)
+//     {
+//         perror("fopen");
+//     }
+//     fseek(loginfile, 0, SEEK_END);
+//     length = ftell(loginfile); // Grab file length
+//     fseek(loginfile, 0, SEEK_SET);
+//     logintext = (char*)malloc((length) * sizeof(char));       // Buffer for file
+//     fread(logintext, sizeof(char), length, loginfile); // Grab entire file
+//     int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
+//     fullhttp = malloc(sizeof(char) * total_length);
+//     // printf("%s\n", logintext);
+//     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
+//     fclose(loginfile);
+//     write(newtm_fd, fullhttp, strlen(fullhttp));
+//     free(logintext);
+//     free(fullhttp);
+// }
 
 void setUser(char *buffer, char username[32], char password[32])
 {
@@ -620,17 +895,19 @@ int main(int argc, char *argv[])
 
         //printf("1USERNAME: %s\n", username);
         //printf("1PASSWORD: %s\n", password);
-            
+        printf("accepted connection from TM\n");
         displaylogin(newtm_fd);
-        char buffer[2500];
-        recv(newtm_fd, buffer, sizeof(buffer),0);
-        setUser(buffer, username, password);
-        username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
-        username[strcspn(username, "\r")] = '\0';
-        password[strcspn(password, "\n")] = '\0';
-        password[strcspn(password, "\r")] = '\0';
+        printf("after display login\n");
+        // char buffer[2500];
+        // recv(newtm_fd, buffer, sizeof(buffer),0);
+        // setUser(buffer, username, password);
+        // username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+        // username[strcspn(username, "\r")] = '\0';
+        // password[strcspn(password, "\n")] = '\0';
+        // password[strcspn(password, "\r")] = '\0';
         //printf("2USERNAME: %s\n Length of USERNAME: %lu\n", username, strlen(username));
         //printf("2PASSWORD: %s\n Length of PASSWORD: %lu\n", password, strlen(password));
+
         switch (fork())
         {
         case -1:
@@ -647,7 +924,7 @@ int main(int argc, char *argv[])
                 int loginValue = login(username, password, &user.user_filename);
 
                 int loadvalue = loadUser();
-                printf("load value: %i\n", loadvalue);
+                //printf("load value: %i\n", loadvalue);
                 if (loadvalue == -1) // If file failed to open
                 {
                     returnvalue = "NF";
