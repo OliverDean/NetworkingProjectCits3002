@@ -5,16 +5,16 @@
 //; With questions being 'q - QB its from - questionID - amount of times attempted'
 // filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
 
-// window.onload = function() {
-//     var xhr = new XMLHttpRequest();
-//     xhr.open('GET', 'user_cookie_file.txt', true);
-//     xhr.onreadystatechange = function () {
-//         if (xhr.readyState == 4 && xhr.status == 200)
-//             var questions = parseQuestions(xhr.responseText); // Store the returned questions
-//             displayQuestions(questions); // Call a new function that will handle displaying the questions
-//     }
-//     xhr.send(null);
-// }
+window.onload = function() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'user_cookie_file.txt', true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200)
+            var questions = parseQuestions(xhr.responseText); // Store the returned questions
+            displayQuestions(questions); // Call a new function that will handle displaying the questions
+    }
+    xhr.send(null);
+}
 
 
 window.onload = function() {
