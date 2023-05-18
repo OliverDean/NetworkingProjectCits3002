@@ -37,11 +37,11 @@ window.onload = function() {
 
 
 
-window.onload = function() {
-    var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
-    var questions = parseQuestions(filedata); // Parse the filedata string
-    displayQuestions(questions); // Display the parsed questions
-}
+// window.onload = function() {
+//     var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
+//     var questions = parseQuestions(filedata); // Parse the filedata string
+//     displayQuestions(questions); // Display the parsed questions
+// }
 
 
 function getStatus(attempts) {

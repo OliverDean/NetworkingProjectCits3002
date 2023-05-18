@@ -83,6 +83,7 @@ int loadUser(curUser *user)
     fp = fopen(user->user_filename, "r"); // Open user file
     if (fp == NULL)
     {
+        printf("Failed to open users.txt\n");
         perror("fopen");
         return -1;
     }
@@ -197,41 +198,74 @@ int login(char username[], char password[], curUser *user)
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
+    
     FILE *fpa = fopen("users.txt", "r");
+    if (!fpa) {
+        
+        perror("Error opening file");
+        return -1;
+    }
 
     while ((linelen = getline(&line, &linesize, fpa)) != -1)
     {
         buf = strtok(line, ";");
+        if (buf == NULL) {
+            printf("Failed to tokenize line\n");
+            continue;
+        }
+        
         if (!strcmp(buf, "//")) // If comment line
             continue;
+        
         if (!strcasecmp(buf, username))
         { // If strings equal (ignoring case-sensitive for username)
-            strcpy(temp, buf);
+            strncpy(temp, buf, sizeof(temp));
+            temp[sizeof(temp) - 1] = '\0';  // Ensure null termination
+
             buf = strtok(NULL, ";");
+            if (buf == NULL) {
+                printf("Failed to tokenize line\n");
+                continue;
+            }
+            
             if (!strcmp(buf, password))
             { // If passwords equal (must be case-sensitive)
-                strcpy(user->password, buf);
-                strcpy(user->username, temp);
+                strncpy(user->password, buf, sizeof(user->password));
+                user->password[sizeof(user->password) - 1] = '\0';  // Ensure null termination
+                
+                strncpy(user->username, temp, sizeof(user->username));
+                user->username[sizeof(user->username) - 1] = '\0';  // Ensure null termination
+
                 buf = strtok(NULL, ";");
+                if (buf == NULL) {
+                    printf("Failed to tokenize line\n");
+                    continue;
+                }
+                
                 buf[strcspn(buf, "\n")] = '\0';
                 buf[strcspn(buf, "\r")] = '\0';
-                printf("File looking at is: %s\n", buf);
-                if (buf == NULL || *buf == '\0')
-                {
+
+                if (buf == NULL || *buf == '\0') {
+                    fclose(fpa);
                     return -2;
                 }
-                strcpy(user->user_filename, buf);
+                
+                strncpy(user->user_filename, buf, sizeof(user->user_filename));
+                user->user_filename[sizeof(user->user_filename) - 1] = '\0';  // Ensure null termination
+                
                 fclose(fpa);
                 return 0;
             }
             else
             {
+                fclose(fpa);
                 return 1;
             }
         }
         else
             continue;
     }
+    fclose(fpa);
     return -1;
 }
 
@@ -761,6 +795,95 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
     sendHttpResponse(socket_fd, filePath, contentType);
 }
 
+// int displaylogin(int newtm_fd, char *username, char *password) {
+//     char buffer[3000];
+//     read(newtm_fd, buffer, 3000);
+
+//     // Parse the HTTP request
+//     HttpRequest httpRequest = parseHttpRequest(buffer);
+
+//     // Extract the username and password from the query string
+//     // char username[500] = {0};
+//     // char password[500] = {0};
+//     int hasUsername = 0;
+//     int hasPassword = 0;
+//     if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
+//         char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
+//         char *pair = strtok(queryCopy, "&");
+//         printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
+
+//         while (pair != NULL) {
+//             char *equalsSign = strchr(pair, '=');
+//             if (equalsSign != NULL) {
+//                 *equalsSign = '\0'; // Replace the equals sign with a null terminator
+//                 char *key = pair;
+//                 char *value = equalsSign + 1;
+
+//                 if (strcmp(key, "username") == 0) {
+//                     strcpy(username, value);
+//                     username[sizeof(username)] = '\0';
+//                     hasUsername = 1;
+//                 } else if (strcmp(key, "password") == 0) {
+//                     strcpy(password, value);
+//                     password[sizeof(password)] = '\0';
+//                     hasPassword = 1;
+//                 }
+//             }
+//             pair = strtok(NULL, "&");
+//         }
+//         free(queryCopy);
+//     }
+
+//     // if (hasUsername && hasPassword)
+//     // {
+//     //     printf("has username and password\n");
+        
+//     //     return 0;
+//     // }
+//     // else
+//     // {
+//     //     //Send the login page as the HTTP response
+//     //     handleRequest(newtm_fd, httpRequest);
+//     //     return 1;
+//     // }
+
+//     // Only attempt login if both username and password are present in the query string
+//     if (hasUsername && hasPassword) {
+//         char *filename = NULL;
+//         curUser user;
+//         printf("Attempting login...\n");
+//         int login_result = login(username, password, &filename);
+//         if (login_result == 0) {
+//             strcpy(user.user_filename, filename);
+            
+//             // // Redirect to the question dashboard
+//             // HttpRequest httpRequest;
+//             // strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
+//             // handleRequest(newtm_fd, httpRequest);
+//             sendRedirectResponse(newtm_fd, "/question_dashboard");
+
+//         } else {
+//             printf("Login failed with error code: %d\n", login_result);
+//         }
+//     }
+// }
+
+int attempt_login(int newtm_fd, char *username, char *password) {
+    curUser user;
+    printf("Attempting login...\n");
+    int login_result = login(username, password, &user);
+    if (login_result == 0) {
+        printf("Login succeeded.\n");
+        // Redirect to the question dashboard
+        sendRedirectResponse(newtm_fd, "/question_dashboard");
+        return 0;
+    } else {
+        printf("Login failed with error code: %d\n", login_result);
+        return login_result;
+    }
+}
+
+
 int displaylogin(int newtm_fd, char *username, char *password) {
     char buffer[3000];
     read(newtm_fd, buffer, 3000);
@@ -769,8 +892,6 @@ int displaylogin(int newtm_fd, char *username, char *password) {
     HttpRequest httpRequest = parseHttpRequest(buffer);
 
     // Extract the username and password from the query string
-    // char username[500] = {0};
-    // char password[500] = {0};
     int hasUsername = 0;
     int hasPassword = 0;
     if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
@@ -800,38 +921,20 @@ int displaylogin(int newtm_fd, char *username, char *password) {
         free(queryCopy);
     }
 
-    if (hasUsername && hasPassword)
-    {
-        printf("has username and password\n");
-        return 0;
-    }
-    else
-    {
+    // Only attempt login if both username and password are present in the query string
+    if (hasUsername && hasPassword) {
+        return attempt_login(newtm_fd, username, password);
+    } else {
         //Send the login page as the HTTP response
         handleRequest(newtm_fd, httpRequest);
         return 1;
     }
-
-    // // Only attempt login if both username and password are present in the query string
-    // if (hasUsername && hasPassword) {
-    //     char *filename = NULL;
-    //     curUser user;
-    //     printf("Attempting login...\n");
-    //     int login_result = login(username, password, &filename);
-    //     if (login_result == 0) {
-    //         strcpy(user.user_filename, filename);
-            
-    //         // Redirect to the question dashboard
-    //         // HttpRequest httpRequest;
-    //         // strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
-    //         // handleRequest(newtm_fd, httpRequest);
-    //         sendRedirectResponse(newtm_fd, "/question_dashboard");
-
-    //     } else {
-    //         printf("Login failed with error code: %d\n", login_result);
-    //     }
-    // }
 }
+
+
+
+
+
 
 // Function to send a question request
 void send_question_request(curUser* user, int question_index, int cqbpipe[2], int pyqbpipe[2]) {
