@@ -9,7 +9,7 @@ import struct
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.0.5"
+TM_SERVER = "192.168.243.118"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
@@ -17,47 +17,33 @@ CQB = "CQuestionBank"
 PQBCount = 6
 CQBCount = 4
 
-def start_server(version, QBS):
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("192.168.0.5", 4127))
-    server_socket.listen(1)
+def start_server(version, QBS, TM_socket):
+    #server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #server_socket.bind(("192.168.0.5", 4127))
+    #server_socket.listen(1)
 
     while True:  # Infinite loop to accept new connections
-        print("Waiting for a connection...")
-
-        client_socket, client_address = server_socket.accept()
-
-        print(f"Accepted connection from {client_address}.")
-
         # Now we handle the client connection in a separate loop
-        try:
-            print("waiting for TM")
-            data = client_socket.recv(2)
-            if not data:
-                print("No data received from client. Closing connection.")
-                break
-            print("recieved data")
-            print(data.decode())
+        print("waiting for TM")
+        data = TM_socket.recv(2)
+        if not data:
+            print("No data received from client. Closing connection.")
+            break
+        print("recieved data")
+        print(data.decode())
 
-            if data.decode() == "GQ":
-                RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
-                generate_questions(client_socket, RQB)
-            elif data.decode() == "AN": #answer question
-                receive_answer(client_socket,QBS)
-            elif data.decode() == "IQ": #incorrect question
-                send_answer(client_socket,QBS)
-            elif data.decode() == "PQ": #return question text
-                recv_id_and_return_question_info(client_socket,QBS)
-            else:
-                print("Invalid command received. Closing connection.")
-                break
-        except ConnectionResetError:
-            print("Connection was reset by client. Waiting for new connection...")
-            break  # Break from the client handling loop, going back to waiting for a new connection
-
-        # When the client connection is closed, we close our side of the connection and go back to waiting for a new connection
-        client_socket.close()
-        print("Client connection closed. Waiting for a new connection...")
+        if data.decode() == "GQ":
+            RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
+            generate_questions(TM_socket, RQB)
+        elif data.decode() == "AN": #answer question
+            receive_answer(TM_socket,QBS)
+        elif data.decode() == "IQ": #incorrect question
+            send_answer(TM_socket,QBS)
+        elif data.decode() == "PQ": #return question text
+            recv_id_and_return_question_info(TM_socket,QBS)
+        else:
+            print("Invalid command received. Closing connection.")
+            break
 
     # The server socket is never closed in this example, because the server runs forever
 
@@ -327,15 +313,15 @@ def main():
         if opt == '-p': #python
             print("conencting to python")
             QBS=parse_data(PQB)
-            # s = connect_to_tm(PQB_PORT)
+            s = connect_to_tm(PQB_PORT)
             # communicate_with_tm(s, PQBCount, QBS)
-            start_server(PQBCount,QBS)
+            start_server(PQBCount,QBS,s)
         elif opt == '-c': #c
             print("conencting to c")
             QBS=parse_data(CQB)
-            # s = connect_to_tm(CQB_PORT)
+            s = connect_to_tm(CQB_PORT)
             # communicate_with_tm(s, CQBCount, QBS)
-            start_server(CQBCount,QBS) 
+            start_server(CQBCount,QBS,s) 
     
 if __name__ == "__main__":
     main()

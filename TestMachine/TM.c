@@ -130,8 +130,10 @@ int loadUser(curUser *user)
 
     if (QBcounter == 10) // If there are 10 questions
         return 0;
-    else if (QBcounter < 10) // If not 10 questions, error out
+    else if (QBcounter < 10) { // If not 10 questions, error out
+        printf("Returning -1 from loaduser.\n");
         return -1;
+    }
     else if (QBcounter <= 0) // If somehow Qbcounter is below 0 (if we get here we are screwed)
         return -1;
 }
@@ -181,7 +183,10 @@ int login(char username[], char password[], curUser *user)
                 strcpy(user->password, buf);
                 strcpy(user->username, temp);
                 buf = strtok(NULL, ";");
-                if (buf == NULL)
+                buf[strcspn(buf, "\n")] = '\0';
+                buf[strcspn(buf, "\r")] = '\0';
+                printf("File looking at is: %s\n", buf);
+                if (buf == NULL || *buf == '\0')
                 {
                     return -2;
                 }
@@ -755,17 +760,17 @@ int main(int argc, char *argv[])
                 }
 
                 printf("User signed in!\n");
+                printf("User filename is: %s\n", user.user_filename);
 
                 if (loginValue == 0) { // If file does exist
+                    printf("File exists.\n");
                     loadvalue = loadUser(&user);
-                    printf("QuestionID at index 3 is: %s\n", user.QuestionID[3]);
-                    for(int i = 0; i < 10; i++) {
-                        printf("Question %d is from %s\n", i, user.QB[i]);
-                    }
+                    printf("loadvalue is: %d\n", loadvalue);
                 }
                 
                 if (loginValue == -2 || loadvalue == -1) // If file failed to open
                 {
+                    printf("Calling generate new file.\n");
                     generatenewfile(&user);
                     printf("Generated new cookiefile\n");
                     printf("sending gq request\n");

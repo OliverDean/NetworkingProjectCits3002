@@ -67,7 +67,168 @@ Input:("20", "15")
 Output:"5"
 return a-b;
 
+91
+mcq
+Who developed Python Programming Language?
+A. Wick van Rossum
+B. Rasmus Lerdorf
+C. Guido van Rossum
+D. Niene Stom
+C
+
+2
+mcq
+Which type of Programming does Python support?
+A. object-oriented programming
+B. structured programming
+C. functional programming
+D. all of the mentioned
+D
+
+3
+mcq
+Is Python case sensitive when dealing with identifiers?
+A. no
+B. yes
+C. machine dependent
+D. none of the mentioned
+B
+
+4
+mcq
+Which of the following is the correct extension of the Python file?
+A. .python
+B. .pl
+C. .py
+D. .p
+C
+
+5
+mcq
+Is Python code compiled or interpreted?
+A. Python code is both compiled and interpreted
+B. Python code is neither compiled nor interpreted
+C. Python code is only compiled
+D. Python code is only interpreted
+A
+
+6
+mcq
+All keywords in Python are in _________
+A. Capitalized
+B. lower case
+C. UPPER CASE
+D. None of the mentioned
+D
+
+7
+mcq
+Which of the following is used to define a block of code in Python language?
+A. Indentation
+B. Key
+C. Brackets
+D. All of the mentioned
+A
+
+8
+mcq
+Which keyword is used for function in Python language?
+A. Function
+B. def
+C. Fun
+D. Define
+B
+
 9
+mcq
+Which of the following character is used to give single-line comments in Python?
+A. //
+B. #
+C. !
+D. /*
+B
+
+10
+mcq
+What does pip stand for python?
+A. Pip Installs Python
+B. Pip Installs Packages
+C. Preferred Installer Program
+D. All of the mentioned
+C
+
+11
+programchallenge
+python
+write a function and return the total of two input number"
+Input:("5", "10")
+Output:"15"
+return a+b
+
+12
+programchallenge
+python
+write a function to calculate the product of two numbers
+Input:("6", "7")
+Output:"42"
+return a*b
+
+13
+programchallenge
+python
+write a function to calculate the difference between two numbers
+Input:("10", "4")
+Output:"6"
+return a-b
+
+14
+programchallenge
+python
+write a function to calculate the quotient of two numbers (integer division)
+Input:("9", "2")
+Output:"4"
+return a//b
+
+15
+programchallenge
+python
+write a function to calculate the modulus of two numbers
+Input:("10", "3")
+Output:"1"
+return a%b
+
+16
+programchallenge
+python
+write a function to calculate the power of a number raised to another
+Input:("2", "3")
+Output:"8"
+return a**b
+
+17
+programchallenge
+python
+write a function to return the minimum of two numbers
+Input:("10", "20")
+Output:"10"
+return min(10,20)
+
+18
+programchallenge
+python
+write a function to return the maximum of two numbers
+Input:("10", "20")
+Output:"20"
+return max(10,20)
+
+19
+programchallenge
+python
+write a function to check if one number is divisible by another
+Input:("10", "5")
+Output:"True"
+return num%div == 0
+
 programchallenge
 C
 Write a function that returns the quotient of two input numbers.
