@@ -385,10 +385,6 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
                 fprintf(ft, "q;%s;%s;---;\n", QBversion, buf); // Add it to users cookie file
                 buf = strtok(NULL, ";");
             }
-            if (write(pipe[1], "YE", 3) == -1)
-            {
-                perror("write");
-            }
             fclose(ft);
         }
         else if (!strcmp(commandbuffer, "AN"))
@@ -777,7 +773,7 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    if (write(cqbpipe[1], user.user_filename, 9) == -1)
+                    if (write(cqbpipe[1], user.user_filename, 8) == -1)
                     {
                         perror("write");
                     }
@@ -786,7 +782,7 @@ int main(int argc, char *argv[])
                     {
                         perror("write");
                     }
-                    if (write(pqbpipe[1], user.user_filename, 9) == -1)
+                    if (write(pqbpipe[1], user.user_filename, 8) == -1)
                     {
                         perror("write");
                     }
@@ -804,29 +800,7 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-                    char *cqbconf = NULL;
-                    char *pqbconf = NULL;
-                    printf("Waiting for confirmation.\n");
-                    if (loadvalue != 0 && loginValue != 0)
-                    {
-                        while (strcasecmp(cqbconf, "YE"))
-                        {
-                            if (read(cqbpipe[0], cqbconf, 3) == -1)
-                            {
-                                perror("read");
-                            }
-                        }
-                        printf("Confirmation from CQB\n");
-                        while (strcasecmp(pqbconf, "YE"))
-                        {
-                            if (read(pqbpipe[0], pqbconf, 3) == -1)
-                            {
-                                perror("read");
-                            }
-                        }
-                    }
 
-                    printf("Files made, conf is: %s & %s\n", cqbconf, pqbconf);
                     printf("successful signin.\n");
                     while (1) // Testing QB connection
                     {
@@ -841,7 +815,6 @@ int main(int argc, char *argv[])
                         code[strcspn(code, "\r")] = '\0';
 
                         if (!strcmp(code, "PQ")) {
-                            memset(code, 0, sizeof(code));
                             if (send(newtm_fd, "Please enter a question index: ", 31, 0) == -1)
                                 perror("send");
                             if (recv(newtm_fd, &indexbuf, 4, 0) == -1)
@@ -856,7 +829,7 @@ int main(int argc, char *argv[])
                                 {
                                     perror("write");
                                 }
-                                if (write(cqbpipe[1], index, sizeof(int)) == -1) // Question 2 is index 3
+                                if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
                                 {
                                     perror("write");
                                 }
@@ -873,7 +846,7 @@ int main(int argc, char *argv[])
                                 {
                                     perror("write");
                                 }
-                                if (write(pqbpipe[1], index, sizeof(int)) == -1) // Question 2 is index 3
+                                if (write(pqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
                                 {
                                     perror("write");
                                 }
