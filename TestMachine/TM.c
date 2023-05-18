@@ -390,6 +390,16 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
                 fprintf(ft, "q;%s;%s;---;\n", QBversion, buf); // Add it to users cookie file
                 buf = strtok(NULL, ";");
             }
+            printf("Sending verification!\n");
+            if (!strcasecmp(QBversion, "c"))
+            {
+                if (write(pipe[1], "YE", 3) == -1)
+                    perror("write");
+            }
+            else{
+                if (write(pipe[1], "YE", 3) == -1)
+                    perror("write");
+            }
             fclose(ft);
         }
         else if (!strcmp(commandbuffer, "AN"))
@@ -726,6 +736,8 @@ int main(int argc, char *argv[])
                 //close(tm_fd);
                 curUser user;
                 int loadvalue = 0;
+                char *cqbverf = NULL;
+                char *pqbverf = NULL;
                 memset(username, 0, sizeof(username));
                 memset(password, 0, sizeof(password));
                 if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
@@ -741,7 +753,6 @@ int main(int argc, char *argv[])
                 password[strcspn(password, "\n")] = '\0';
                 password[strcspn(password, "\r")] = '\0';
                 //char *returnvalue;
-                //char httprequestvalue[2];
                 printf("USERNAME: %s\n", username);
                 printf("PASS: %s\n", password);
                 int loginValue = login(username, password, &user);
@@ -768,7 +779,7 @@ int main(int argc, char *argv[])
                     printf("loadvalue is: %d\n", loadvalue);
                 }
                 
-                if (loginValue == -2 || loadvalue == -1) // If file failed to open
+                while (loginValue == -2 || loadvalue == -1) // If file failed to open
                 {
                     printf("Calling generate new file.\n");
                     generatenewfile(&user);
@@ -792,8 +803,20 @@ int main(int argc, char *argv[])
                         perror("write");
                     }
                     printf("received gq requests.\n");
+                    if (cqbverf == NULL && pqbverf == NULL) 
+                    {
+                        if (read(cqbpipe[0], cqbverf, 3) == -1)
+                            perror("read");
+                        if (read(pqbpipe[0], pqbverf, 3) == -1)
+                            perror("read");
+                    }
+                    printf("Verifications: c %s python %s", cqbverf, pqbverf);
+                    loadvalue = loadUser(&user);
+                    if (loadvalue == 0)
+                        loginValue = 0;
                 }
-                else if (loadvalue == 0 && loginValue == 0) // Everything Works!
+
+                if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
                     char code[2] = {0};
                     /*
