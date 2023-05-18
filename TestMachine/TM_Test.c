@@ -833,6 +833,38 @@ int displaylogin(int newtm_fd, char *username, char *password) {
     // }
 }
 
+// Function to send a question request
+void send_question_request(curUser* user, int question_index, int cqbpipe[2], int pyqbpipe[2]) {
+    char code[3]; 
+    strncpy(code, "PQ", 3);  // Setting the command code to "PQ"
+
+    printf("Sending PQ for question %d\n", question_index + 1);
+
+    // Send the code "PQ" to the correct question bank based on the question type
+    int pipe_to_write = (strcmp(user->QB[question_index], "c") == 0) ? cqbpipe[1] : pyqbpipe[1];
+
+    if (write(pipe_to_write, code, 3) == -1) {
+        perror("write");
+    }
+
+    // Convert the index to network byte order before sending
+    uint32_t network_order_index = htonl(question_index);
+    if (write(pipe_to_write, &network_order_index, sizeof(network_order_index)) == -1) {
+        perror("write");
+    }
+
+    // Send the question ID itself to the question bank
+    if (write(pipe_to_write, user->QuestionID[question_index], 4) == -1) {
+        perror("write");
+    }
+
+    printf("Request sent for question ID: %s\n", user->QuestionID[question_index]);
+}
+
+
+//send_question_request(&user, question_index, cqbpipe, pyqbpipe);
+
+
 
 int main(int argc, char *argv[])
 {
