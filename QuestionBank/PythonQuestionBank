@@ -94,6 +94,7 @@ python
 write a function and return the total of two input number"
 Input:("5", "10")
 Output:"15"
+return a+b
 
 12
 programchallenge
@@ -101,6 +102,7 @@ python
 write a function to calculate the product of two numbers
 Input:("6", "7")
 Output:"42"
+return a*b
 
 13
 programchallenge
@@ -108,6 +110,7 @@ python
 write a function to calculate the difference between two numbers
 Input:("10", "4")
 Output:"6"
+return a-b
 
 14
 programchallenge
@@ -115,6 +118,7 @@ python
 write a function to calculate the quotient of two numbers (integer division)
 Input:("9", "2")
 Output:"4"
+return a//b
 
 15
 programchallenge
@@ -122,6 +126,7 @@ python
 write a function to calculate the modulus of two numbers
 Input:("10", "3")
 Output:"1"
+return a%b
 
 16
 programchallenge
@@ -129,6 +134,7 @@ python
 write a function to calculate the power of a number raised to another
 Input:("2", "3")
 Output:"8"
+return a**b
 
 17
 programchallenge
@@ -136,6 +142,7 @@ python
 write a function to return the minimum of two numbers
 Input:("10", "20")
 Output:"10"
+return min(10,20)
 
 18
 programchallenge
@@ -143,6 +150,7 @@ python
 write a function to return the maximum of two numbers
 Input:("10", "20")
 Output:"20"
+return max(10,20)
 
 19
 programchallenge
@@ -150,3 +158,4 @@ python
 write a function to check if one number is divisible by another
 Input:("10", "5")
 Output:"True"
+return num%div == 0
