@@ -28,7 +28,7 @@ typedef struct curUser
     int questions[10];    // Each has a max of 3
     int score[10];        // Max of 3
     int total_score;      // Max of 30
-    char user_filename[8];
+    char user_filename[9 ];
 } curUser;
 
 // Loads user data into structure
@@ -339,9 +339,9 @@ void generatenewfile(curUser *user)
 // Will automatically break out once connection is broken.
 void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 {
+    curUser user;
     while (1)
     {
-        curUser user;
         char commandbuffer[3] = {0};
         if (read(pipe[0], commandbuffer, 3) == -1) // Wait for instructions
         {
@@ -463,7 +463,8 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             int optionlength = 0;
             int questionID_index = 0;
             int questionID_check = 0;
-            char *questionID = NULL;
+            int questionID = 0;
+            char questionIDBuf[4] = {0};
             char *questionBuf = NULL;
             char *optionBuf = NULL;
             if (read(pipe[0], &questionID_index, sizeof(int)) == -1) 
@@ -471,19 +472,21 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
                 perror("read");
             }
             printf("id is %d\n", questionID_index);
-            if (read(pipe[0], questionID, 4) == -1) 
+            if (read(pipe[0], questionIDBuf, 4) == -1) 
             {
                 perror("read");
             }
-            printf("Question ID is: %s\n", questionID);
+            printf("Question ID is: %s\n", questionIDBuf);
             if (send(QBsocket, "PQ", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 printf("Error sending PQ");
                 perror("send");
             }
             printf("Send PQ\n");
-            printf("Sending index: %s\n", questionID);
-            if (send(QBsocket, user.QuestionID[questionID_index], sizeof(user.QuestionID[questionID_index]), 0) == -1) // Send QB the questionID
+            questionID = atoi(questionIDBuf);
+            printf("Sending index: %d\n", questionID);
+            questionID = htonl(questionID);
+            if (send(QBsocket, &questionID, sizeof(questionID), 0) == -1) // Send QB the questionID
             {
                 printf("Error sending user questionID");
                 perror("send");
@@ -493,30 +496,32 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             {
                 perror("recv");
             }
-            printf("Got question length\n");
+            printf("Got question length: %d\n", ntohl(questionlength));
+            questionBuf = malloc(ntohl(questionlength + 1));
             if (recv(QBsocket, questionBuf, ntohl(questionlength), MSG_WAITALL) == -1) // Get answer
             {
                 perror("recv");
             }
-            printf("got question.\n");
+            printf("got question: %s\n", questionBuf);
             if (recv(QBsocket, &optionlength, sizeof(int), 0) == -1)
             {
                 perror("recv");
             }
-            printf("got option length");
+            printf("got option length: %d\n", ntohl(optionlength));
+            optionBuf = malloc(ntohl(optionlength + 1));
             if (recv(QBsocket, optionBuf, ntohl(optionlength), 0) == -1)
             {
                 perror("recv");
             }
-            printf("got options.\n");
+            printf("got options: %s\n", optionBuf);
             if (recv(QBsocket, &questionID_check, sizeof(int), 0) == -1)
             {
                 perror("recv");
             }
-            printf("got questionID/\n");
-            if (ntohl(questionID_check) != questionID_index) {
+            printf("got questionID: %d\n", ntohl(questionID_check));
+            if (ntohl(questionID_check) != ntohl(questionID)) {
                 printf("Error, received wrong question!\n");
-                printf("Expected questionID: %d - Got: %d\n", questionID_index, ntohl(questionID_check));
+                printf("Expected questionID: %d - Got: %d\n", ntohl(questionID), ntohl(questionID_check));
                 break;
             }
             printf("Question: %s\n", questionBuf);
@@ -577,7 +582,7 @@ void setUser(char *buffer, char username[32], char password[32])
         // for (int i =0; i < strlen(password); i++)
         // {
         //     if (password[i] != '\n' || password[i] != '\r' || password[i] != '\0')
-        //     {
+        //     {, curUser *user
         //         printf("\t%c\n", password[i]);
         //     }
         // }
@@ -818,7 +823,7 @@ int main(int argc, char *argv[])
 
                 if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
-                    char code[2] = {0};
+                    char code[3] = {0};
                     /*
                     Here is where the HTTP requests will come through once the user is signed in
                     In here all user data is loaded into the structure
@@ -832,42 +837,50 @@ int main(int argc, char *argv[])
                     printf("successful signin.\n");
                     while (1) // Testing QB connection
                     {
-                        int indexbuf = 0;
+                        char indexbuf[4] = {0};
                         int index = 0;
+                        char buffer[1024] = {0};
                         memset(code, 0, sizeof(code));
-                        if (send(newtm_fd, "Please enter a code: ", 20, 0) == -1)
+                        if (send(newtm_fd, "Please enter a code: ", 21, 0) == -1)
                             perror("send");
-                        if (recv(newtm_fd, code, 2, 0) == -1)
+                        if (recv(newtm_fd, code, 3, 0) == -1)
+                            perror("recv");
+                        if (recv(newtm_fd, buffer, 1024, 0) == -1)
                             perror("recv");
                         code[strcspn(code, "\n")] = '\0';
                         code[strcspn(code, "\r")] = '\0';
 
+                        printf("code is: %s\n", code);
+
                         if (!strcmp(code, "PQ")) {
-                            if (send(newtm_fd, "Please enter a question index: ", 31, 0) == -1)
+                            printf("inside PQ.\n");
+                            if (send(newtm_fd, "Please enter a question index (0-9): ", 37, 0) == -1)
                                 perror("send");
-                            if (recv(newtm_fd, &indexbuf, 4, 0) == -1)
+                            if (recv(newtm_fd, indexbuf, 4, 0) == -1)
                                 perror("recv");
-                            index = ntohl(indexbuf);
+                            printf("index buf is: %s\n", indexbuf);
+                            index = atoi(indexbuf);
+                            printf("index is: %d\n", index);
                             code[strcspn(code, "\n")] = '\0';
                             code[strcspn(code, "\r")] = '\0';
-                            if (strcasecmp(user.QB[2], "c"))
+                            if (strcasecmp(user.QB[index], "c"))
                             {
                                 printf("Sending PQ to c\n");
                                 if (write(cqbpipe[1], "PQ", 3) == -1)
                                 {
                                     perror("write");
                                 }
-                                if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
+                                if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Sending question index
                                 {
                                     perror("write");
                                 }
-                                if (write(cqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
+                                if (write(cqbpipe[1], user.QuestionID[index], 4) == -1) // Sending questionID
                                 {
                                     perror("write");
                                 }
                                 printf("Grabbing question");
                             }
-                            else if(strcasecmp(user.QB[2], "python"))
+                            else if(strcasecmp(user.QB[index], "python"))
                             {
                                 printf("Sending PQ to p\n");
                                 if (write(pqbpipe[1], "PQ", 3) == -1)
