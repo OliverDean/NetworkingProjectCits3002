@@ -40,6 +40,7 @@ def start_server(version, QBS, TM_socket):
         elif data.decode() == "IQ": #incorrect question
             send_answer(TM_socket,QBS)
         elif data.decode() == "PQ": #return question text
+            print("inside PQ")
             recv_id_and_return_question_info(TM_socket,QBS)
         else:
             print("Invalid command received. Closing connection.")
@@ -135,6 +136,7 @@ def return_question_info(s, question_dict, id):
     s.sendall(struct.pack('!i', len(options_bytes)))  # Send length of options
     s.sendall(options_bytes)  # Send options
     s.sendall(id_bytes)  # Send id
+    print("sent all data")
 
 
 def send_answer(s, question_dict):
