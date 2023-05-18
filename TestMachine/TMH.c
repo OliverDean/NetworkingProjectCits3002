@@ -16,7 +16,7 @@
 #define TMPORT "4125"
 #define PQBPORT "4126"
 #define CQBPORT "4127"
-#define BACKLOG 25
+#define BACKLOG 25 // **10 in tm.c
 
 typedef struct curUser
 {
