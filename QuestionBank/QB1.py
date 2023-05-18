@@ -10,7 +10,7 @@ import subprocess
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.243.118"
+TM_SERVER = "localhost"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"

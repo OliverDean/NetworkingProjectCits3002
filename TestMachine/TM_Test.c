@@ -28,7 +28,7 @@ typedef struct curUser
     int questions[10];    // Each has a max of 3
     int score[10];        // Max of 3
     int total_score;      // Max of 30
-    char user_filename[8];
+    char user_filename[9];
 } curUser;
 curUser user;
 
@@ -392,71 +392,58 @@ int setupsocket(char *port)
 void generatenewfile(curUser *user)
 {
     char *line = NULL;
-    char *buf = NULL;
     size_t linesize = 0;
     ssize_t linelen;
-    int counter = 0;
+
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     strcpy(user->user_filename, randomstring);
+
     FILE *fp = fopen(user->user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
         perror("fopen");
+        return;
     }
-    FILE *up = fopen("users.txt", "r+");
+    fprintf(fp, "%s;\n", user->username); // Add users username to their own cookie file
+    fclose(fp);
+    
+    FILE *up = fopen("users.txt", "r");
     if (up == NULL)
     {
         perror("fopen");
+        return;
     }
-    FILE *new = fopen("temptemptemp", "w");
+
+    FILE *new = fopen("temp_users.txt", "w");
     if (new == NULL)
     {
         perror("fopen");
+        fclose(up);
+        return;
     }
+
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
-        counter += (int)linelen;
-        fprintf(new, "%s", line);
-        buf = strtok(line, ";");
-        if (!strcmp(buf, "//"))
-        { // If comment line
-            continue;
-        }
-        else if (!strcasecmp(buf, user->username))
-        { // Line we want
-            buf = strtok(NULL, ";");
-            if (!strcmp(buf, user->password))
-            {
-                buf = strtok(NULL, ";");
-                if (*buf == '\n') 
-                {
-                    counter--;
-                }
-                else if (buf != NULL)
-                { // If user has filename, re-write over it in the next step
-                    printf("Found additional user cookie file: %s\n", buf);
-                    counter -= sizeof(buf);
-                    counter -= 2; // Take into account the 2 lost ';'
-                    remove(buf);
-                }
-                fseek(new, counter, SEEK_SET);             // Move up file pointer to end of line (after users password)
-                fprintf(new, "%s;\n", user->user_filename); // Add users cookie filename
-                fprintf(fp, "%s;\n", user->username);       // Add users username to their own cookie file
-            }
-            else
-            {
-                continue;
-            }
+        char *token = strtok(line, ";");
+        if (token && strcasecmp(token, user->username) == 0)
+        {
+            // The line is for our user, so we need to modify it.
+            fprintf(new, "%s;%s;%s;\n", user->username, user->password, user->user_filename);
         }
         else
-            continue;
+        {
+            // This line is not for our user, so just copy it over.
+            fprintf(new, "%s", line);
+        }
     }
+
     free(line);
     fclose(new);
     fclose(up);
-    fclose(fp);
+
+    // Replace the old users.txt with our new file.
     remove("users.txt");
-    rename("temptemptemp", "users.txt");
+    rename("temp_users.txt", "users.txt");
 }
 
 // Code for both question banks
@@ -656,6 +643,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[256];
+    printf("session_id %s\n", user.user_filename);
     sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user.user_filename);
 
     char *fileText = NULL;
@@ -737,7 +725,7 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
 
 void sendRedirectResponse(int socket_fd, const char *location) {
     char header[256];
-    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location);
+    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user.user_filename);
     printf("Redirecting to: %s\n", location);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
