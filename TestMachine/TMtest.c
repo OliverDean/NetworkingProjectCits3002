@@ -260,7 +260,6 @@ Uri parseUri(const char *uriString) {
     }
 
     strcpy(uri.path, copy);
-
     return uri;
 }
 
@@ -709,74 +708,82 @@ void sendRedirectResponse(int socket_fd, const char *location) {
     write(socket_fd, header, strlen(header));
 }
 
-void handleRequest(int socket_fd, HttpRequest httpRequest) {
+int handleRequest(int socket_fd, HttpRequest httpRequest) {
     // Determine the file path based on the request
     const char *filePath = NULL;
     ContentType contentType = HTML;
+    int pathType = 0;
 
     if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
         filePath = "./ClientBrowser/login.html";
         contentType = HTML;
+        pathType = 1;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/login") == 0) {
         filePath = "./ClientBrowser/login.html";
         contentType = HTML;
+        pathType = 2;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/logout") == 0) {
         filePath = "./ClientBrowser/logout.html";
         contentType = HTML;
+        pathType = 3;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_coding") == 0) {
         filePath = "./ClientBrowser/question_coding.html";
         contentType = HTML;
+        pathType = 4;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_multi") == 0) {
         filePath = "./ClientBrowser/question_multi.html";
         contentType = HTML;
+        pathType = 5;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_dashboard") == 0) {
         filePath = "./ClientBrowser/question_dashboard.html";
         contentType = HTML;
+        pathType = 6;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/styles.css") == 0) {
         filePath = "./ClientBrowser/styles.css";
         contentType = CSS;
+        pathType = 7;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/icon.jpg") == 0) {
         filePath = "./ClientBrowser/icon.jpg";
         contentType = JPEG;
+        pathType = 8;
         sendImageResponse(socket_fd, filePath, contentType);
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateDashboard.js") == 0) {
         filePath = "./ClientBrowser/populateDashboard.js";
         contentType = JS;
+        pathType = 9;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestion.js") == 0) {
         filePath = "./ClientBrowser/populateQuestion.js";
         contentType = JS;
+        pathType = 10;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestionCoding.js") == 0) {
         filePath = "./ClientBrowser/populateQuestionCoding.js";
         contentType = JS;
+        pathType = 11;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
+        pathType = 12;
     } else {
         // Handle file not found error
         sendHttpResponse(socket_fd, "/error.html", HTML);
-        return;
+        pathType = -1;
+        return pathType;
     }
-
     // Send the HTTP response with the appropriate file
     sendHttpResponse(socket_fd, filePath, contentType);
+    return pathType;
 }
 
-int displaylogin(int newtm_fd, char *username, char *password) {
-    char buffer[3000];
-    read(newtm_fd, buffer, 3000);
-
-    // Parse the HTTP request
-    HttpRequest httpRequest = parseHttpRequest(buffer);
-
-    // Extract the username and password from the query string
-    // char username[500] = {0};
-    // char password[500] = {0};
+int checkUser(int newtm_fd, HttpRequest httpRequest, char *username, char *password) 
+{
     int hasUsername = 0;
     int hasPassword = 0;
+
     if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
         char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
         char *pair = strtok(queryCopy, "&");
-        //printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
+
+        // printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
 
         while (pair != NULL) {
             char *equalsSign = strchr(pair, '=');
@@ -802,35 +809,12 @@ int displaylogin(int newtm_fd, char *username, char *password) {
 
     if (hasUsername && hasPassword)
     {
-        printf("has username and password\n");
         return 0;
     }
     else
     {
-        //Send the login page as the HTTP response
-        handleRequest(newtm_fd, httpRequest);
         return 1;
     }
-
-    // // Only attempt login if both username and password are present in the query string
-    // if (hasUsername && hasPassword) {
-    //     char *filename = NULL;
-    //     curUser user;
-    //     printf("Attempting login...\n");
-    //     int login_result = login(username, password, &filename);
-    //     if (login_result == 0) {
-    //         strcpy(user.user_filename, filename);
-            
-    //         // Redirect to the question dashboard
-    //         // HttpRequest httpRequest;
-    //         // strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
-    //         // handleRequest(newtm_fd, httpRequest);
-    //         sendRedirectResponse(newtm_fd, "/question_dashboard");
-
-    //     } else {
-    //         printf("Login failed with error code: %d\n", login_result);
-    //     }
-    // }
 }
 
 
@@ -935,14 +919,11 @@ int main(int argc, char *argv[])
         newtm_fd = accept(tm_fd, (struct sockaddr *)&tm_addr, &tm_size);
         if (newtm_fd == -1)
         {
+            printf("oops\n");
             perror("accept");
             break;
         }
         printf("connection made!\n");
-
-        int dlReturn = displaylogin(newtm_fd, username, password);
-        printf("dlReturn: %i\n", dlReturn);
-
 
         switch (fork())
         {
@@ -953,23 +934,38 @@ int main(int argc, char *argv[])
         case 0:
             while (1)
             {
-                //close(tm_fd);
+                close(tm_fd);
+
+                char buffer[3000];
+                read(newtm_fd, buffer, 3000);
+                // Parse the HTTP request
+                HttpRequest httpRequest = parseHttpRequest(buffer);
+
+                if (strlen(httpRequest.requestLine.uri.queryString) != 0)
+                {
+                    int cuReturn = checkUser(newtm_fd, httpRequest, username, password);
+                }
+
+                int r = handleRequest(newtm_fd, httpRequest);
+                printf("httpRequest: %i\n", r);
+                            break;
+                close(newtm_fd);
                 curUser user;
                 int loadValue = 0;
                 char *cqbverf = NULL;
                 char *pqbverf = NULL;
                 int loginValue = -1;
 
-                if (dlReturn == 0)
-                {
-                    printf("here!\n");
-                    // loginValue = login(username, password, &user);
-                    //printf("login value: %i\n", loginValue);
-                    // printf("User filename is: %s\n", user.user_filename);
-                    sendRedirectResponse(newtm_fd, "/question_dashboard");
-                    close(newtm_fd);
-                    break;
-                }
+                // if (dlReturn == 0)
+                // {
+                //     printf("here!\n");
+                //     // loginValue = login(username, password, &user);
+                //     //printf("login value: %i\n", loginValue);
+                //     // printf("User filename is: %s\n", user.user_filename);
+                //     sendRedirectResponse(newtm_fd, "/question_dashboard");
+                //     close(newtm_fd);
+                //     break;
+                // }
 
                 //Redirect to the question dashboard
                 
