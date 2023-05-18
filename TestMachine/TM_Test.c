@@ -621,8 +621,8 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 
 void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
-    char header[128];
-    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nContent-Length: ", contentTypeString);
+    char header[256];
+    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user.user_filename);
 
     char *fileText = NULL;
     FILE *file = fopen(filePath, "r");
@@ -939,8 +939,12 @@ int main(int argc, char *argv[])
             break;
         }
         printf("connection made!\n");
+        //needs to change into if else loops
+        //checks the http header and first line.
+        //if the first line is a get request, then it will check the username and password
 
         int dlReturn = displaylogin(newtm_fd, username, password);
+
         printf("dlReturn: %i\n", dlReturn);
         close(newtm_fd);
 

@@ -6,15 +6,35 @@
 // filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
 
 window.onload = function() {
+    // Extract the session id from the cookies
+    var cookies = document.cookie.split(';');
+    var sessionId = '';
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.startsWith('session_id=')) {
+            sessionId = cookie.substring('session_id='.length, cookie.length);
+            break;
+        }
+    }
+    if (sessionId === '') {
+        console.error('Session id not found in the cookies');
+        return;
+    }
+    
+    // Use the session id to build the file name
+    var fileName = sessionId + '.txt';
+    
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'user_cookie_file.txt', true);
+    xhr.open('GET', fileName, true);
     xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4 && xhr.status == 200)
+        if (xhr.readyState == 4 && xhr.status == 200) {
             var questions = parseQuestions(xhr.responseText); // Store the returned questions
             displayQuestions(questions); // Call a new function that will handle displaying the questions
+        }
     }
     xhr.send(null);
 }
+
 
 
 window.onload = function() {
