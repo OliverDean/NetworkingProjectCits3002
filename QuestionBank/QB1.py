@@ -5,6 +5,7 @@ import string
 import sys, getopt
 import select
 import struct
+import subprocess
 
 answered_questions_file = "answered_questions.txt"
 
@@ -36,12 +37,11 @@ def start_server(version, QBS, TM_socket):
             RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
             generate_questions(TM_socket, RQB)
         elif data.decode() == "AN": #answer question
-            receive_answer(TM_socket,QBS)
+            receive_answer(TM_socket, QBS)
         elif data.decode() == "IQ": #incorrect question
-            send_answer(TM_socket,QBS)
+            send_answer(TM_socket, QBS)
         elif data.decode() == "PQ": #return question text
-            print("inside PQ")
-            recv_id_and_return_question_info(TM_socket,QBS)
+            recv_id_and_return_question_info(TM_socket, QBS)
         else:
             print("Invalid command received. Closing connection.")
             break
