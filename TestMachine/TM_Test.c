@@ -279,7 +279,7 @@ const char* getContentTypeString(ContentType contentType) {
     }
 }
 
-// function to parse the url in a http request for login page
+// function to parse the url in a http request for the login page
 Uri parseUri(const char *uriString) {
     Uri uri;
     char copy[500];
@@ -640,6 +640,8 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
     close(pipe[1]);
 }
 
+// Sends an HTTP response with a text-based file. 
+// It takes a socket file descriptor, the file path to respond with, and the content type of the file.
 void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[256];
@@ -676,6 +678,7 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     free(fullhttp);
 }
 
+// Same as sendHttpResponse, but for images
 void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[128];
@@ -723,6 +726,8 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
     free(imageData);
 }
 
+// Function sends an HTTP response that redirects to a different location.
+// It takes a socket file descriptor and the target location URL.
 void sendRedirectResponse(int socket_fd, const char *location) {
     char header[256];
     sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user.user_filename);
@@ -731,6 +736,8 @@ void sendRedirectResponse(int socket_fd, const char *location) {
     write(socket_fd, header, strlen(header));
 }
 
+// The handleRequest function processes an HTTP request and sends the appropriate response.
+// It takes a socket file descriptor and an HttpRequest structure.
 void handleRequest(int socket_fd, HttpRequest httpRequest) {
     // Determine the file path based on the request
     const char *filePath = NULL;
@@ -779,83 +786,13 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
         return;
     }
 
-    // Send the HTTP response with the appropriate file
+    printf("user_filename before sending HTTP response: %s\n", user.user_filename);
     sendHttpResponse(socket_fd, filePath, contentType);
+    printf("user_filename after sending HTTP response: %s\n", user.user_filename);
+
 }
 
-// int displaylogin(int newtm_fd, char *username, char *password) {
-//     char buffer[3000];
-//     read(newtm_fd, buffer, 3000);
-
-//     // Parse the HTTP request
-//     HttpRequest httpRequest = parseHttpRequest(buffer);
-
-//     // Extract the username and password from the query string
-//     // char username[500] = {0};
-//     // char password[500] = {0};
-//     int hasUsername = 0;
-//     int hasPassword = 0;
-//     if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
-//         char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
-//         char *pair = strtok(queryCopy, "&");
-//         printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
-
-//         while (pair != NULL) {
-//             char *equalsSign = strchr(pair, '=');
-//             if (equalsSign != NULL) {
-//                 *equalsSign = '\0'; // Replace the equals sign with a null terminator
-//                 char *key = pair;
-//                 char *value = equalsSign + 1;
-
-//                 if (strcmp(key, "username") == 0) {
-//                     strcpy(username, value);
-//                     username[sizeof(username)] = '\0';
-//                     hasUsername = 1;
-//                 } else if (strcmp(key, "password") == 0) {
-//                     strcpy(password, value);
-//                     password[sizeof(password)] = '\0';
-//                     hasPassword = 1;
-//                 }
-//             }
-//             pair = strtok(NULL, "&");
-//         }
-//         free(queryCopy);
-//     }
-
-//     // if (hasUsername && hasPassword)
-//     // {
-//     //     printf("has username and password\n");
-        
-//     //     return 0;
-//     // }
-//     // else
-//     // {
-//     //     //Send the login page as the HTTP response
-//     //     handleRequest(newtm_fd, httpRequest);
-//     //     return 1;
-//     // }
-
-//     // Only attempt login if both username and password are present in the query string
-//     if (hasUsername && hasPassword) {
-//         char *filename = NULL;
-//         curUser user;
-//         printf("Attempting login...\n");
-//         int login_result = login(username, password, &filename);
-//         if (login_result == 0) {
-//             strcpy(user.user_filename, filename);
-            
-//             // // Redirect to the question dashboard
-//             // HttpRequest httpRequest;
-//             // strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
-//             // handleRequest(newtm_fd, httpRequest);
-//             sendRedirectResponse(newtm_fd, "/question_dashboard");
-
-//         } else {
-//             printf("Login failed with error code: %d\n", login_result);
-//         }
-//     }
-// }
-
+// Tries to log in with a given username and password.
 int attempt_login(int newtm_fd, char *username, char *password) {
     curUser user;
     printf("Attempting login...\n");
@@ -871,7 +808,7 @@ int attempt_login(int newtm_fd, char *username, char *password) {
     }
 }
 
-
+// The displaylogin function reads an HTTP request, extracts a username and password from the query string, and attempts to log in.
 int displaylogin(int newtm_fd, char *username, char *password) {
     char buffer[3000];
     read(newtm_fd, buffer, 3000);
@@ -918,10 +855,6 @@ int displaylogin(int newtm_fd, char *username, char *password) {
         return 1;
     }
 }
-
-
-
-
 
 
 // Function to send a question request
@@ -998,7 +931,7 @@ void send_answer_request(curUser* user, int question_index, char* answer, int QB
     else
         printf("Answer is wrong\n");
 }
-`
+
 
 
 
