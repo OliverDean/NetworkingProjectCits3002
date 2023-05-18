@@ -724,6 +724,7 @@ int main(int argc, char *argv[])
             {
                 //close(tm_fd);
                 curUser user;
+                int loadvalue = 0;
                 memset(username, 0, sizeof(username));
                 memset(password, 0, sizeof(password));
                 if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
@@ -750,10 +751,6 @@ int main(int argc, char *argv[])
                         perror("send");
                     continue;
                 }
-                else if (loginValue == -2) // File is broken
-                {
-                    goto nofile;
-                }
                 else if (loginValue == 1) // Invalid Password
                 {
                     if (send(newtm_fd, "Incorrect Password.\n", 21, 0) == -1)
@@ -763,19 +760,40 @@ int main(int argc, char *argv[])
 
                 printf("User signed in!\n");
 
-                int loadvalue = loadUser(&user);
-                printf("QuestionID at index 3 is: %s\n", user.QuestionID[3]);
-                for(int i = 0; i < 10; i++) {
-                    printf("Question %d is from %s\n", i, user.QB[i]);
+                if (loginValue == 0) { // If file does exist
+                    loadvalue = loadUser(&user);
+                    printf("QuestionID at index 3 is: %s\n", user.QuestionID[3]);
+                    for(int i = 0; i < 10; i++) {
+                        printf("Question %d is from %s\n", i, user.QB[i]);
+                    }
                 }
-                printf("load value: %i\n", loadvalue);
-                if (loadvalue == -1) // If file failed to open
+                
+                if (loginValue == -2 || loadvalue == -1) // If file failed to open
                 {
-                    goto nofile;
+                    generatenewfile(&user);
+                    printf("Generated new cookiefile\n");
+                    printf("sending gq request\n");
+                    if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
+                    {
+                        perror("write");
+                    }
+                    if (write(cqbpipe[1], user.user_filename, 9) == -1)
+                    {
+                        perror("write");
+                    }
+                    printf("C QB success.\n");
+                    if (write(pqbpipe[1], "GQ", 3) == -1) // Generate questions from Python QB
+                    {
+                        perror("write");
+                    }
+                    if (write(pqbpipe[1], user.user_filename, 9) == -1)
+                    {
+                        perror("write");
+                    }
+                    printf("received gq requests.\n");
                 }
                 else if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
-                    usersignedin:
                     char code[2] = {0};
                     /*
                     Here is where the HTTP requests will come through once the user is signed in
@@ -875,32 +893,6 @@ int main(int argc, char *argv[])
                     close(pqbpipe[0]);
                     close(pqbpipe[1]);
                     break;
-                }
-                else if (loadvalue != 0 || loginValue != 0) // Bad / No File
-                {
-                nofile:
-                    generatenewfile(&user);
-                    printf("Generated new cookiefile\n");
-                    printf("sending gq request\n");
-                    if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
-                    {
-                        perror("write");
-                    }
-                    if (write(cqbpipe[1], user.user_filename, 9) == -1)
-                    {
-                        perror("write");
-                    }
-                    printf("C QB success.\n");
-                    if (write(pqbpipe[1], "GQ", 3) == -1) // Generate questions from Python QB
-                    {
-                        perror("write");
-                    }
-                    if (write(pqbpipe[1], user.user_filename, 9) == -1)
-                    {
-                        perror("write");
-                    }
-                    printf("received gq requests.\n");
-                    goto usersignedin;
                 }
             }
             break;
