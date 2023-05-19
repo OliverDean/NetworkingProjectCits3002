@@ -5,11 +5,14 @@ import string
 import sys, getopt
 import select
 import struct
+import subprocess
+import ast
+import tempfile
 
 answered_questions_file = "answered_questions.txt"
 
 # Define your TM server credentials here
-TM_SERVER = "192.168.243.118"
+TM_SERVER = "localhost"
 PQB_PORT = 4126
 CQB_PORT = 4127
 PQB = "PythonQuestionBank"
@@ -36,12 +39,12 @@ def start_server(version, QBS, TM_socket):
             RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
             generate_questions(TM_socket, RQB)
         elif data.decode() == "AN": #answer question
-            receive_answer(TM_socket,QBS)
+            print("Accepted AN")
+            receive_answer(TM_socket, QBS)
         elif data.decode() == "IQ": #incorrect question
-            send_answer(TM_socket,QBS)
+            send_answer(TM_socket, QBS)
         elif data.decode() == "PQ": #return question text
-            print("inside PQ")
-            recv_id_and_return_question_info(TM_socket,QBS)
+            recv_id_and_return_question_info(TM_socket, QBS)
         else:
             print("Invalid command received. Closing connection.")
             break
@@ -70,10 +73,11 @@ def receive_answer(s,QBS):
     # Receive the length of the answer
     length_net = s.recv(4)
     length = socket.ntohl(int.from_bytes(length_net, 'big'))  # Convert network byte order to host byte order
-
+    print(length)
     # Receive the answer
     answer = s.recv(length).decode()
 
+    print(answer)
     # Receive the question ID
     question_id_net = s.recv(4)
     question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
@@ -85,8 +89,18 @@ def receive_answer(s,QBS):
     print(f"Correct answer: {question['answer']}")
     print(f"User answer: {answer}")
     # If the answer is correct, send "Y". Otherwise, send "N".
-    is_answer_correct = check_answer(QBS, question_id,answer)  # You need to implement this function
-    s.send(('Y' if is_answer_correct else 'N').encode())
+    result = check_answer(QBS, question_id,answer)  # You need to implement this function
+    print(f"Sending response: {result}")
+
+    # Calculate the length of the response
+    result_length = len(result)
+    result_length_net = socket.htonl(result_length).to_bytes(4, 'big')
+
+    # Send the length of the result
+    s.send(result_length_net)
+
+    # Send the result
+    s.send(result.encode())
 
 def recv_id_and_return_question_info(s, question_dict):
     # Receive 4 bytes of data (the size of an integer in network byte order)
@@ -113,13 +127,14 @@ def return_question_info(s, question_dict, id):
     question_data = question_dict[str(id)]
     question = question_data['question']
     options = question_data['options']
+    type = question_data['type']
     # If options is None, set it to an empty string
     if options is None:
         options = ""
 
     # Debugging output
-    print(f"Question data for ID {id}: {question_data}")
-    print(f"Options data type: {type(options)}")
+    #print(f"Question data for ID {id}: {question_data}")
+    #print(f"Options data type: {type(options)}")
 
     # If options is a list, convert it to a string
     if isinstance(options, list):
@@ -128,6 +143,7 @@ def return_question_info(s, question_dict, id):
     # Convert question, options, and id to bytes
     question_bytes = question.encode()
     options_bytes = options.encode()
+    type_bytes = type.encode()
     id_bytes = struct.pack('!i', id)  # Convert id to network byte order
 
     # Send length of question, question, length of options, options, and id
@@ -135,6 +151,8 @@ def return_question_info(s, question_dict, id):
     s.sendall(question_bytes)  # Send question
     s.sendall(struct.pack('!i', len(options_bytes)))  # Send length of options
     s.sendall(options_bytes)  # Send options
+    s.sendall(struct.pack('!i', len(type_bytes))) #send length of type
+    s.sendall(type_bytes) #send type
     s.sendall(id_bytes)  # Send id
     print("sent all data")
 
@@ -144,6 +162,7 @@ def send_answer(s, question_dict):
     question_id_net = s.recv(4)
     question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
     
+    print(question_id)
     # Try to convert the received ID to integer. If it fails, it's probably not a valid ID.
     try:
         question_id = int(question_id)
@@ -161,7 +180,9 @@ def send_answer(s, question_dict):
     # Extract the answer
     answer = question_data['answer']
 
+    print(answer)
     # Send the answer back
+    s.sendall(struct.pack('!i', len(answer)))
     s.send(answer.encode())
 
 def connect_to_tm(port):
@@ -228,81 +249,60 @@ def get_random_questions(question_dict, num_questions):
 
 def check_answer(question_dict, id, user_answer):
     question = question_dict[str(id)]
+    inputs = ast.literal_eval(question['input'])
 
-    if question['type'] == 'mcq':
-        return user_answer.lower() == question['answer'].lower()
-    elif question['type'] == 'programchallenge':
-        # Remove parentheses and split the input string into two parts
-        inputs = question['input'].strip('()').split(',')
-        # Check if there are enough inputs
-        if len(inputs) < 2:
-            return False
-        # Remove the double quotes and any spaces around each input value, then convert them to integers
-        a, b = map(int, (i.strip('" ').strip() for i in inputs))
-        expected_output = question['expected_output'].strip('"')
-
+    if question['type'] == 'programchallenge':
         if question['category'] == 'python':
-            # Create a function definition with the user's answer as the body
-            user_answer_code = f"""
-def user_function(a, b):
-    {user_answer}
-"""
             try:
-                # Execute the function definition
-                exec(user_answer_code, globals())
-                # Call the user's function and get the output
-                user_output = user_function(a, b)
-            except:
-                return False
+                # Write user's answer to a temp file
+                with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as tmpfile:
+                    python_code_file = tmpfile.name
+                    tmpfile.write(user_answer.encode())
+
+                # Prepare the command to run the Python code with the provided inputs
+                cmd = f"python3 {python_code_file} {' '.join(inputs)}"
+                
+                # Run the Python code, and get the output
+                result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode != 0:
+                    return result.stdout.decode() + result.stderr.decode()
+                user_output = result.stdout.decode().strip()
+            except Exception as e:
+                return str(e)
+
         elif question['category'] == 'C':
-            c_program_template = f"""
-#include <stdio.h>
-#include <stdlib.h>
-
-int user_function(int a, int b);
-
-int main(int argc, char *argv[]) {{
-    int a = atoi(argv[1]);
-    int b = atoi(argv[2]);
-    printf("%d", user_function(a, b));
-    return 0;
-}}
-
-int user_function(int a, int b) {{
-    {user_answer}
-}}
-"""
-            # Create a temporary file for the C code
-            with tempfile.NamedTemporaryFile(suffix=".c", delete=False) as tmpfile:
-                c_code_file = tmpfile.name
-                tmpfile.write(c_program_template.encode())
-
-            # Create the command to compile and run the C code
-            commands = [
-                f"gcc -o {c_code_file[:-2]} {c_code_file}",
-                f"{c_code_file[:-2]} {a} {b}"
-            ]
-            
-            # Compile and run the C code, and get the output
             try:
+                # Write user's answer to a temp file
+                with tempfile.NamedTemporaryFile(suffix=".c", delete=False) as tmpfile:
+                    c_code_file = tmpfile.name
+                    tmpfile.write(user_answer.encode())
+
+                # Prepare the commands to compile and run the C code with the provided inputs
+                commands = [
+                    f"gcc -o {c_code_file[:-2]} {c_code_file}",
+                    f"{c_code_file[:-2]} {' '.join(inputs)}"
+                ]
+
+                # Compile and run the C code, and get the output
                 for cmd in commands:
                     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if result.returncode != 0:
-                        return False
+                        return f"Program returned with non-zero exit status {result.returncode}. Error output: {result.stderr.decode()}"
                 user_output = result.stdout.decode().strip()
-            except:
-                return False
+            except Exception as e:
+                return str(e)
         else:
-            return False
+            return "Invalid programming language."
 
-        # Convert expected_output to correct type based on its own value
-        if expected_output.isdigit():
-            expected_output = int(expected_output)
-        elif expected_output.lower() in ['true', 'false']:
-            expected_output = expected_output.lower() == 'true'
+        expected_output = question['expected_output'].strip('"')
         
-        
-        return str(user_output) == str(expected_output)
+        if str(user_output) != str(expected_output):
+            return f"Expected output '{expected_output}' but got '{user_output}'."
+        else:
+            return "Y"
+
+    else:
+        return "Invalid question type."
   
 def main():
     try:
