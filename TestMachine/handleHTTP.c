@@ -11,6 +11,7 @@
 void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
     const char *filePath = NULL;
     ContentType contentType = HTML;
+    printf("Username is: %s\n", user.user_filename);
 
     //char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
     char *queryCopy = strdup(httpRequest.requestLine.uri.path);
@@ -68,8 +69,10 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     const char *contentTypeString = getContentTypeString(contentType);
     char header[256];
     printf("session_id %s\n", user_filename);
-    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user_filename);
-
+    if (*user_filename != 0)
+        sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user_filename);
+    else if (*user_filename == 0)
+        sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nContent-Length: ", contentTypeString);
     char *fileText = NULL;
     FILE *file = fopen(filePath, "r");
     if (file == NULL) {
@@ -91,6 +94,7 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     char *fullhttp = malloc(sizeof(char) * total_length);
     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
     
+    printf("FULLHTTP IS: %s\n", fullhttp);
     // Send the HTTP response
     write(socket_fd, fullhttp, strlen(fullhttp));
 

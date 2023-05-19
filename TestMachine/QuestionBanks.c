@@ -22,7 +22,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
         if (!strcmp(commandbuffer, "GQ")) // Generate Questions
         {
             char questionIDbuffer[32] = {0};
-            char filename[9] = {0};
+            char filename[13] = {0};
             int length = 0;
             char *buf = NULL;
             printf("Received gq request..\n");
@@ -44,7 +44,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             }
             questionIDbuffer[ntohl(length) + 1] = '\0';
             printf("questionID buffer is: %s\n", questionIDbuffer);
-            if (read(pipe[0], filename, 9) == -1) // Send data to parent
+            if (read(pipe[0], filename, 13) == -1) // Send data to parent
             {
                 perror("read");
             }
