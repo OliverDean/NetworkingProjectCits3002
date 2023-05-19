@@ -443,12 +443,21 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
         { // If QB's need to return the answer to a question (3 failed attempts)
             printf("meant to get answer here...\n");
             int length = 0;
-            char *answerBuf;
+            int questionID = 0;
+            char *answerBuf = NULL;
+            char questionIDBuf[4] = {0};
+            if (read(pipe[0], questionIDBuf, 4) == -1) 
+            {
+                perror("read");
+            }
+            printf("Question ID is: %s\n", questionIDBuf);
+            questionID = atoi(questionIDBuf);
+            printf("Sending index: %d\n", questionID);
             if (send(QBsocket, "IQ", 2, 0) == -1) // Send QB what it needs to prep for
             {
                 perror("send");
             }
-            if (send(QBsocket, user.QuestionID[3], sizeof(user.QuestionID[3]), 0) == -1) // Send QB the questionID
+            if (send(QBsocket, &questionID, sizeof(int), 0) == -1) // Send QB the questionID
             {
                 perror("send");
             }
@@ -456,23 +465,27 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             {
                 perror("recv");
             }
+            answerBuf = malloc(ntohl(length + 1));
             if (recv(QBsocket, answerBuf, ntohl(length), MSG_WAITALL) == -1) // Get answer
             {
                 perror("recv");
             }
-            printf("%s\n", answerBuf);
+            printf("answer is: %s\n", answerBuf);
+            free(answerBuf);
         }
         else if (!strcmp(commandbuffer, "PQ"))
         { // If QB's need to return the question from questionID
             printf("meant to return the question here...\n");
             int questionlength = 0;
             int optionlength = 0;
+            int typelength = 0;
             int questionID_index = 0;
             int questionID_check = 0;
             int questionID = 0;
             char questionIDBuf[4] = {0};
             char *questionBuf = NULL;
             char *optionBuf = NULL;
+            char *typeBuf = NULL;
             if (read(pipe[0], &questionID_index, sizeof(int)) == -1) 
             {
                 perror("read");
@@ -520,6 +533,17 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
                 perror("recv");
             }
             printf("got options: %s\n", optionBuf);
+            if (recv(QBsocket, &typelength, sizeof(int), 0) == -1)
+            {
+                perror("recv");
+            }
+            printf("got type length: %d\n", ntohl(typelength));
+            typeBuf = malloc(ntohl(typelength + 1));
+            if (recv(QBsocket, typeBuf, ntohl(typelength), 0) == -1)
+            {
+                perror("recv");
+            }
+            printf("got type: %s\n", typeBuf);
             if (recv(QBsocket, &questionID_check, sizeof(int), 0) == -1)
             {
                 perror("recv");
@@ -924,6 +948,38 @@ int main(int argc, char *argv[])
                             {
                                 printf("Sending AN to p\n");
                                 if (write(pqbpipe[1], "AN", 3) == -1)
+                                {
+                                    perror("write");
+                                }
+                                if (write(pqbpipe[1], user.QuestionID[index], sizeof(int)) == -1)
+                                {
+                                    perror("write");
+                                }
+                            }
+                        }
+                        else if(!strcasecmp(code, "IQ"))
+                        {
+                            printf("Inside AN\n");
+                            if (send(newtm_fd, "Please enter a question index (0-9): ", 37, 0) == -1)
+                                perror("send");
+                            if (recv(newtm_fd, indexbuf, 4, 0) == -1)
+                                perror("recv");
+                            if (strcasecmp(user.QB[index], "c"))
+                            {
+                                printf("Sending IQ to c\n");
+                                if (write(cqbpipe[1], "IQ", 3) == -1)
+                                {
+                                    perror("write");
+                                }
+                                if (write(cqbpipe[1], user.QuestionID[index], sizeof(int)) == -1)
+                                {
+                                    perror("write");
+                                }
+                            }
+                            else if(strcasecmp(user.QB[index], "python"))
+                            {
+                                printf("Sending IQ to p\n");
+                                if (write(pqbpipe[1], "IQ", 3) == -1)
                                 {
                                     perror("write");
                                 }

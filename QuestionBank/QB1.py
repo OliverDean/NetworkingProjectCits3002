@@ -133,8 +133,8 @@ def return_question_info(s, question_dict, id):
         options = ""
 
     # Debugging output
-    print(f"Question data for ID {id}: {question_data}")
-    print(f"Options data type: {type(options)}")
+    #print(f"Question data for ID {id}: {question_data}")
+    #print(f"Options data type: {type(options)}")
 
     # If options is a list, convert it to a string
     if isinstance(options, list):
@@ -143,6 +143,7 @@ def return_question_info(s, question_dict, id):
     # Convert question, options, and id to bytes
     question_bytes = question.encode()
     options_bytes = options.encode()
+    type_bytes = type.encode()
     id_bytes = struct.pack('!i', id)  # Convert id to network byte order
 
     # Send length of question, question, length of options, options, and id
@@ -150,8 +151,8 @@ def return_question_info(s, question_dict, id):
     s.sendall(question_bytes)  # Send question
     s.sendall(struct.pack('!i', len(options_bytes)))  # Send length of options
     s.sendall(options_bytes)  # Send options
-    s.sendall(struct.pack('!i', len(type))) #send length of type
-    s.sendall(type) #send type
+    s.sendall(struct.pack('!i', len(type_bytes))) #send length of type
+    s.sendall(type_bytes) #send type
     s.sendall(id_bytes)  # Send id
     print("sent all data")
 
@@ -161,6 +162,7 @@ def send_answer(s, question_dict):
     question_id_net = s.recv(4)
     question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
     
+    print(question_id)
     # Try to convert the received ID to integer. If it fails, it's probably not a valid ID.
     try:
         question_id = int(question_id)
@@ -178,6 +180,7 @@ def send_answer(s, question_dict):
     # Extract the answer
     answer = question_data['answer']
 
+    print(answer)
     # Send the answer back
     s.send(answer.encode())
 
