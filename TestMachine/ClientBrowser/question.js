@@ -96,6 +96,10 @@ function loadQuestion(id, type) {
   xhr.onreadystatechange = function () {
     if (xhr.readyState == 4 && xhr.status == 200) {
       var questionData = xhr.responseText;
+      
+      // Clear the form before loading the new question
+      form.innerHTML = '';
+      
       loadQuestionScript(questionData, type, id);
     }
   };
@@ -106,7 +110,7 @@ function loadQuestionScript(questionData, type, id) {
   // Update the header with the question ID
   document.getElementById("question-header").textContent = `Question ID: ${id}`;
   // Based on the type, choose the function to call
-  if (type === "python") {
+  if (type === "mcq") {
     displayMCQuestion(questionData); // Call the multiple choice question function
   } else if (type === "programchallenge") {
     displayCodingQuestion(questionData); // Call the coding question function
@@ -116,13 +120,13 @@ function loadQuestionScript(questionData, type, id) {
 }
 
 function displayMCQuestion(questionData) {
-  var lines = questionData.split("\n");
+  var lines = questionData.split("\n").map(line => line.trim());
   var question = {
     id: lines[0],
     type: lines[1],
     text: lines[2],
-    options: lines.slice(3, lines.length - 2),  // Exclude the answer line
-    answer: lines[lines.length - 2],  // Update the line index for the answer
+    options: lines.slice(3, lines.length - 1), // Adjust the slice indices to exclude the answer line
+    answer: lines[lines.length - 1]  // Adjust the answer line index
   };
   
   // Create a div for the question

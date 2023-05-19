@@ -66,6 +66,7 @@ typedef enum
     JPEG
 } ContentType;
 
+
 // Loads user data into structure
 // Returns -1 on failure with file (corrupted / not built correctly)
 // Returns 0 on success
@@ -844,7 +845,25 @@ void handleRequest(int socket_fd, HttpRequest httpRequest)
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
     }
+    if (strncmp(httpRequest.requestLine.uri.path, "/question_", 10) == 0) {
+        // We need to parse the question ID from the uri path
+        int questionIndex = atoi(httpRequest.requestLine.uri.path + 10);
 
+        // Fetch the question from the question bank
+        get_question(user, questionIndex, cqbpipe, pyqbpipe);
+
+        // Now send this question as an HTTP response
+        char tempFilePath[50];
+        sprintf(tempFilePath, "question_%d.txt", questionIndex);
+        filePath = tempFilePath;
+        contentType = HTML
+
+        } else {
+            // Handle error - question ID not provided
+            // Set filePath to some error page, or handle this case as you prefer
+            filePath = "./ClientBrowser/error.html";
+            contentType = HTML;
+        }
     if (filePath != NULL)
     {
         const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "not yet logged in";
@@ -1019,7 +1038,82 @@ void send_answer_request(curUser *user, int question_index, char *answer, int QB
 }
 
 
+void get_question(curUser user, int question_index, int cqbpipe[2], int pyqbpipe[2])
+{
+    int pipe[2] = 0;
+    chartype = NULL;
+    char question = NULL;
+    charoption = NULL;
+    int typesize = 0;
+    int questionsize = 0;
+    int optionsize = 0;
+    if (strcasecmp(user->QB[question_index], "c")) {
+        pipe[1] = cqbpipe[1];
+        pipe[0] = cqbpipe[0];
+    }
+    else {
+        pipe[1] = pyqbpipe[1];
+        pipe[0] = cqbpipe[0];
+    }
 
+    if (write(pipe, "PQ", 3) == -1)
+    {
+        perror("write");
+    }
+    if (write(pipe[1], &index, sizeof(int)) == -1) // Sending question index
+    {
+        perror("write");
+    }
+    if (write(pipe[1], user->QuestionID[question_index], 4) == -1) // Sending questionID
+    {
+        perror("write");
+    }
+    if (read(pipe[0], &questionsize, sizeof(int)) == -1)
+    {
+        perror("read");
+    }
+    question = malloc(questionsize + 1);
+    if (read(pipe[0], question, questionsize) == -1)
+    {
+        perror("read");
+    }
+    if (read(pipe[0], &optionsize, sizeof(int)) == -1)
+    {
+        perror("read");
+    }
+    option = malloc(optionsize + 1);
+    if (read(pipe[0], option, optionsize) == -1)
+    {
+        perror("read");
+    }
+    if (read(pipe[0], &typesize, sizeof(int)) == -1)
+    {
+        perror("read");
+    }
+    type = malloc(typesize + 1);
+    if (read(pipe[0], type, typesize) == -1)
+    {
+        perror("read");
+    }
+    printf("Question: %s\nOption: %s\nType%s\n", question, option, type);
+
+    // Write question, options, and type into a temporary text file
+    char fileName[50];
+    sprintf(fileName, "question_%d.txt", question_index);
+    FILE *file = fopen(fileName, "w");
+    if (file == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file, "Question: %s\nOption: %s\nType: %s\n", question, option, type);
+    fclose(file);
+
+    // Clean up
+    free(question);
+    free(option);
+    free(type);
+}
 
 
 
