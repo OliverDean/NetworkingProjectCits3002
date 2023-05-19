@@ -28,7 +28,7 @@ typedef struct curUser
     int questions[10];    // Each has a max of 3
     int score[10];        // Max of 3
     int total_score;      // Max of 30
-    char user_filename[9];
+    char user_filename[13];
 } curUser;
 curUser user;
 
@@ -68,6 +68,7 @@ int loadUser(curUser *user)
 {
     printf("Inside load user.\n");
 
+    printf("filename: %s\n", user->user_filename);
     char *line = NULL;
     char *buf = NULL;
     size_t linesize = 0;
@@ -83,7 +84,6 @@ int loadUser(curUser *user)
     fp = fopen(user->user_filename, "r"); // Open user file
     if (fp == NULL)
     {
-        printf("Failed to open users.txt\n");
         perror("fopen");
         return -1;
     }
@@ -91,14 +91,10 @@ int loadUser(curUser *user)
     while ((linelen = getline(&line, &linesize, fp)) != -1)
     {
         printf("this is the counter: %d\n", QBcounter);
-        printf("Grabbing line.\n");
         printf("line is %s\n", line);
         
         buf = strtok(line, ";");
-        if (!strcmp(buf, "//"))
-        { // Comment line
-            continue;
-        }
+        
         buf[strcspn(buf, "\n")] = '\0';
         buf[strcspn(buf, "\r")] = '\0';
         if ((strcmp(buf, user->username)) && (strcmp(buf, "q")))
@@ -198,76 +194,44 @@ int login(char username[], char password[], curUser *user)
     size_t linesize = 0;
     ssize_t linelen;
     int counter = 0;
-    
     FILE *fpa = fopen("users.txt", "r");
-    if (!fpa) {
-        
-        perror("Error opening file");
-        return -1;
-    }
 
     while ((linelen = getline(&line, &linesize, fpa)) != -1)
     {
         buf = strtok(line, ";");
-        if (buf == NULL) {
-            printf("Failed to tokenize line\n");
-            continue;
-        }
-        
         if (!strcmp(buf, "//")) // If comment line
             continue;
-        
         if (!strcasecmp(buf, username))
         { // If strings equal (ignoring case-sensitive for username)
-            strncpy(temp, buf, sizeof(temp));
-            temp[sizeof(temp) - 1] = '\0';  // Ensure null termination
-
+            strcpy(temp, buf);
             buf = strtok(NULL, ";");
-            if (buf == NULL) {
-                printf("Failed to tokenize line\n");
-                continue;
-            }
-            
             if (!strcmp(buf, password))
             { // If passwords equal (must be case-sensitive)
-                strncpy(user->password, buf, sizeof(user->password));
-                user->password[sizeof(user->password) - 1] = '\0';  // Ensure null termination
-                
-                strncpy(user->username, temp, sizeof(user->username));
-                user->username[sizeof(user->username) - 1] = '\0';  // Ensure null termination
-
+                strcpy(user->password, buf);
+                strcpy(user->username, temp);
                 buf = strtok(NULL, ";");
-                if (buf == NULL) {
-                    printf("Failed to tokenize line\n");
-                    continue;
-                }
-                
                 buf[strcspn(buf, "\n")] = '\0';
                 buf[strcspn(buf, "\r")] = '\0';
-
-                if (buf == NULL || *buf == '\0') {
-                    fclose(fpa);
+                printf("File looking at is: %s\n", buf);
+                if (buf == NULL || *buf == '\0')
+                {
                     return -2;
                 }
-                
-                strncpy(user->user_filename, buf, sizeof(user->user_filename));
-                user->user_filename[sizeof(user->user_filename) - 1] = '\0';  // Ensure null termination
-                
+                strcpy(user->user_filename, buf);
                 fclose(fpa);
                 return 0;
             }
             else
             {
-                fclose(fpa);
                 return 1;
             }
         }
         else
             continue;
     }
-    fclose(fpa);
     return -1;
 }
+
 
 const char* getContentTypeString(ContentType contentType) {
     switch(contentType) {
@@ -392,58 +356,72 @@ int setupsocket(char *port)
 void generatenewfile(curUser *user)
 {
     char *line = NULL;
+    char *buf = NULL;
     size_t linesize = 0;
     ssize_t linelen;
-
+    int counter = 0;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     strcpy(user->user_filename, randomstring);
-
+    strcat(user->user_filename, ".txt");
     FILE *fp = fopen(user->user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
         perror("fopen");
-        return;
     }
-    fprintf(fp, "%s;\n", user->username); // Add users username to their own cookie file
-    fclose(fp);
-    
-    FILE *up = fopen("users.txt", "r");
+    FILE *up = fopen("users.txt", "r+");
     if (up == NULL)
     {
         perror("fopen");
-        return;
     }
-
-    FILE *new = fopen("temp_users.txt", "w");
+    FILE *new = fopen("temptemptemp", "w");
     if (new == NULL)
     {
         perror("fopen");
-        fclose(up);
-        return;
     }
-
     while ((linelen = getline(&line, &linesize, up)) != -1)
     {
-        char *token = strtok(line, ";");
-        if (token && strcasecmp(token, user->username) == 0)
-        {
-            // The line is for our user, so we need to modify it.
-            fprintf(new, "%s;%s;%s;\n", user->username, user->password, user->user_filename);
+        counter += (int)linelen;
+        fprintf(new, "%s", line);
+        buf = strtok(line, ";");
+        if (!strcmp(buf, "//"))
+        { // If comment line
+            continue;
+        }
+        else if (!strcasecmp(buf, user->username))
+        { // Line we want
+            buf = strtok(NULL, ";");
+            if (!strcmp(buf, user->password))
+            {
+                buf = strtok(NULL, ";");
+                if (*buf == '\n') 
+                {
+                    counter--;
+                }
+                else if (buf != NULL)
+                { // If user has filename, re-write over it in the next step
+                    printf("Found additional user cookie file: %s\n", buf);
+                    counter -= sizeof(buf);
+                    counter -= 2; // Take into account the 2 lost ';'
+                    remove(buf);
+                }
+                fseek(new, counter, SEEK_SET);             // Move up file pointer to end of line (after users password)
+                fprintf(new, "%s;\n", user->user_filename); // Add users cookie filename
+                fprintf(fp, "%s;\n", user->username);       // Add users username to their own cookie file
+            }
+            else
+            {
+                continue;
+            }
         }
         else
-        {
-            // This line is not for our user, so just copy it over.
-            fprintf(new, "%s", line);
-        }
+            continue;
     }
-
     free(line);
     fclose(new);
     fclose(up);
-
-    // Replace the old users.txt with our new file.
+    fclose(fp);
     remove("users.txt");
-    rename("temp_users.txt", "users.txt");
+    rename("temptemptemp", "users.txt");
 }
 
 // Code for both question banks
@@ -464,7 +442,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
         {
             int temp = 0;
             char questionIDbuffer[32] = {0};
-            char filename[9] = {0};
+            char filename[13] = {0};
             int length = 0;
             char *buf = NULL;
             printf("Received gq request..\n");
@@ -485,11 +463,11 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             }
             questionIDbuffer[ntohl(length) + 1] = '\0';
             printf("questionID buffer is: %s\n", questionIDbuffer);
-            if (read(pipe[0], filename, 9) == -1) // Send data to parent
+            if (read(pipe[0], filename, 8) == -1) // Send data to parent
             {
                 perror("read");
             }
-            printf("User file name is: %s\n", filename);
+            strcat(filename, ".txt");
             strcpy(user.user_filename, filename);
             FILE *ft = fopen(user.user_filename, "a"); // Open file in append mode
             if (ft == NULL)
@@ -738,58 +716,73 @@ void sendRedirectResponse(int socket_fd, const char *location) {
 
 // The handleRequest function processes an HTTP request and sends the appropriate response.
 // It takes a socket file descriptor and an HttpRequest structure.
-void handleRequest(int socket_fd, HttpRequest httpRequest) {
+int handleRequest(int socket_fd, HttpRequest httpRequest) {
     // Determine the file path based on the request
     const char *filePath = NULL;
     ContentType contentType = HTML;
+    int pathType = 0;
 
     if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
         filePath = "./ClientBrowser/login.html";
         contentType = HTML;
+        pathType = 1;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/login") == 0) {
         filePath = "./ClientBrowser/login.html";
         contentType = HTML;
+        pathType = 2;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/logout") == 0) {
         filePath = "./ClientBrowser/logout.html";
         contentType = HTML;
+        pathType = 3;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_coding") == 0) {
         filePath = "./ClientBrowser/question_coding.html";
         contentType = HTML;
+        pathType = 4;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_multi") == 0) {
         filePath = "./ClientBrowser/question_multi.html";
         contentType = HTML;
+        pathType = 5;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_dashboard") == 0) {
         filePath = "./ClientBrowser/question_dashboard.html";
         contentType = HTML;
+        pathType = 6;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/styles.css") == 0) {
         filePath = "./ClientBrowser/styles.css";
         contentType = CSS;
+        pathType = 7;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/icon.jpg") == 0) {
         filePath = "./ClientBrowser/icon.jpg";
         contentType = JPEG;
+        pathType = 8;
         sendImageResponse(socket_fd, filePath, contentType);
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateDashboard.js") == 0) {
         filePath = "./ClientBrowser/populateDashboard.js";
         contentType = JS;
+        pathType = 9;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestion.js") == 0) {
         filePath = "./ClientBrowser/populateQuestion.js";
         contentType = JS;
+        pathType = 10;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateQuestionCoding.js") == 0) {
         filePath = "./ClientBrowser/populateQuestionCoding.js";
         contentType = JS;
+        pathType = 11;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
+        pathType = 12;
     } else {
         // Handle file not found error
         sendHttpResponse(socket_fd, "/error.html", HTML);
-        return;
+        pathType = -1;
+        return pathType;
     }
-
+    // Send the HTTP response with the appropriate file
     printf("user_filename before sending HTTP response: %s\n", user.user_filename);
     sendHttpResponse(socket_fd, filePath, contentType);
     printf("user_filename after sending HTTP response: %s\n", user.user_filename);
 
+    return pathType;
 }
 
 // Tries to log in with a given username and password.
