@@ -115,12 +115,12 @@ int loadUser(curUser *user)
                         user->attempted++;
                         printf("User has attempted %d questions.\n", user->attempted);
                     }
-                    break;
+                    continue;
                 }
                 else if (*t == '-')
                 {
                     printf("Hasn't attempted yet.\n");
-                    break;
+                    continue;
                 }
             }
             QBcounter++;
