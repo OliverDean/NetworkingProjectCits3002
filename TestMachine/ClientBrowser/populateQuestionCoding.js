@@ -15,7 +15,6 @@ window.onload = function () {
         input: lines[4],
         output: lines[5],
       };
-      //wnat to be able to get the correct question
 
       var questionDiv = document.createElement("div");
       questionDiv.className = "question-module coding";
