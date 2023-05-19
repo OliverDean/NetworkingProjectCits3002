@@ -9,10 +9,12 @@
 // The handleRequest function processes an HTTP request and sends the appropriate response.
 // It takes a socket file descriptor and an HttpRequest structure.
 void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
-    const char *filePath = NULL;
+    printf("Inside handlerequest\n");
+    char *filePath = NULL;
     ContentType contentType = HTML;
     printf("Username is: %s\n", user.user_filename);
 
+    printf("File path is: %s\n", httpRequest.requestLine.uri.path);
     //char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
     char *queryCopy = strdup(httpRequest.requestLine.uri.path);
     free(queryCopy); // remember to free the allocated memory
@@ -49,15 +51,27 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
     }
+    printf("No similarities found in handleRequest.\n");
+
+    printf("Checking to see if path is true.\n");
+    if (*httpRequest.requestLine.uri.path != 0 && filePath == NULL) {
+        printf("File path null in check: %s\n", filePath);
+        filePath = httpRequest.requestLine.uri.path;
+        printf("File path null in check: %s\n", filePath);
+        printf("File path is true!!\n");
+        printf("Changing filePath to the new file path.\n");
+    }
 
     if (filePath != NULL) {
-        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
-        printf("user_filename before sending HTTP response: %s\n", filename);
-        sendHttpResponse(socket_fd, filePath, contentType, user.user_filename);
-
-        printf("user_filename after sending HTTP response: %s\n", filename);
+        char temp[1024] = {0};
+            sprintf(temp, ".%s", filePath);
+            printf("Temp is: %s\n", temp);
+            const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
+            printf("user_filename before sending HTTP response: %s\n", filename);
+            sendHttpResponse(socket_fd, temp, contentType, user.user_filename);
     } else {
         // If filePath is null, send error response
+        printf("File path null: %s\n", filePath);
         const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "butts";
         sendHttpResponse(socket_fd, "./ClientBrowser/error.html", HTML, filename);
     }
