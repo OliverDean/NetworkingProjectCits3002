@@ -182,6 +182,7 @@ def send_answer(s, question_dict):
 
     print(answer)
     # Send the answer back
+    s.sendall(struct.pack('!i', len(answer)))
     s.send(answer.encode())
 
 def connect_to_tm(port):
