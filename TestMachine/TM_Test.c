@@ -841,6 +841,7 @@ int displaylogin(int newtm_fd, char *username, char *password) {
 
     // Only attempt login if both username and password are present in the query string
     if (hasUsername && hasPassword) {
+        
         return attempt_login(newtm_fd, username, password);
     } else {
         //Send the login page as the HTTP response
