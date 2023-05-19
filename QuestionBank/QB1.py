@@ -39,6 +39,7 @@ def start_server(version, QBS, TM_socket):
             RQB = get_random_questions(QBS, version)  # Create a new RQB for each client
             generate_questions(TM_socket, RQB)
         elif data.decode() == "AN": #answer question
+            print("Accepted AN")
             receive_answer(TM_socket, QBS)
         elif data.decode() == "IQ": #incorrect question
             send_answer(TM_socket, QBS)
@@ -72,10 +73,11 @@ def receive_answer(s,QBS):
     # Receive the length of the answer
     length_net = s.recv(4)
     length = socket.ntohl(int.from_bytes(length_net, 'big'))  # Convert network byte order to host byte order
-
+    print(length)
     # Receive the answer
     answer = s.recv(length).decode()
 
+    print(answer)
     # Receive the question ID
     question_id_net = s.recv(4)
     question_id = socket.ntohl(int.from_bytes(question_id_net, 'big'))  # Convert network byte order to host byte order
