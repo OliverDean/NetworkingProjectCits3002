@@ -1,6 +1,5 @@
-Joel;password;1yp5y1mq;
-Joel1yp5y1mq;
-test;test;
+Joel;password;
+test;test;pr26p3e0;
 user;test;jtmgy2jt.txt;
 here;test;yo5fkbic;
 admin;admin;7vyt5y2l;

@@ -13,6 +13,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 #define TMPORT "4125"
 #define PQBPORT "4126"
@@ -36,16 +38,6 @@ char *randomStringGenerator()
     }
     randomstring[8] = '\0';
     return randomstring;
-}
-
-const char* getContentTypeString(ContentType contentType) {
-    switch(contentType) {
-        case HTML: return "text/html";
-        case CSS: return "text/css";
-        case JS: return "application/javascript";
-        case JPEG: return "image/jpeg";
-        default: return "text/plain";
-    }
 }
 
 // Returns 0 on success, -1 on failure
@@ -105,170 +97,46 @@ int setupsocket(char *port)
     return socketfd;
 }
 
-// Function sends an HTTP response that redirects to a different location.
-// It takes a socket file descriptor and the target location URL.
-void sendRedirectResponse(int socket_fd, const char *location, const char *user_filename) {
-    char header[256];
-    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user_filename);
-    printf("Redirecting to: %s\n", location);
-    printf("t\t\tsession_id %s\n", user_filename);
-    // Send the HTTP response
-    write(socket_fd, header, strlen(header));
+
+char* loginPage()
+{
+    char *returnString;
+    FILE *fp;
+    char *logintext = NULL;
+    char *fullhttp = NULL;
+    fp = fopen("./ClientBrowser/login.html", "r");
+    if (fp == NULL) {perror("html file");}
+    char *header = "HTTP/1.1 GET /login 200 OK\nContent-Type: text/html\nContent-Length: ";
+    fseek(fp, 0, SEEK_END);
+    int length = ftell(fp); // Grab file length
+    fseek(fp, 0, SEEK_SET);
+    logintext = (char*)malloc((length) * sizeof(char));       // Buffer for file
+    fread(logintext, sizeof(char), length, fp); // Grab entire file
+    int total_length = strlen(header) + strlen(logintext) + (sizeof(char) * 12);
+    fullhttp = malloc(sizeof(char) * total_length);
+    // printf("%s\n", logintext);
+    snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, logintext);
+    fclose(fp);
+    strcpy(returnString, fullhttp);
+    free(fullhttp);
+    free(logintext);
+    return returnString;
 }
 
-// Tries to log in with a given username and password.
-int attempt_login(int newtm_fd, char *username, char *password) {
-    curUser user;
-    printf("Attempting login...\n");
-    int login_result = login(username, password, &user);
-    if (login_result == 0) {
-        printf("Login succeeded.\n");
-        
-        // Copy the user_filename into a temporary variable
-        char temp_filename[9];
-        strncpy(temp_filename, user.user_filename, 9);
-        
-        // Redirect to the question dashboard
-        printf("t\t\tsession_id %s\n", temp_filename);
-        
-        if (!temp_filename[0] == '\0') {
-            // Pass the temp_filename to the sendRedirectResponse function
-            sendRedirectResponse(newtm_fd, "/question_dashboard", temp_filename);
-        }
-        
-        return 2;
-    } else {
-        printf("Login failed with error code: %d\n", login_result);
-        return login_result;
-    }
+char *questionDashboard()
+{
+    char *returnString;
+    FILE *fp;
+    fp = fopen("/Users/karla/NetworkingProjectCits3002/ClientBrowser/question_dashboard.html", "r");
+    if (fp == NULL) {perror("html file");}
+    char header[5000] = "HTTP/1.1 202 OK\r\n\r\n";
+    char line[180];
+    while (fgets(line, sizeof(line), fp))
+    {
+        returnString = strcat(header, line);
+    };
+    return returnString;
 }
-
-// The displaylogin function reads an HTTP request, extracts a username and password from the query string, and attempts to log in.
-int displaylogin(int newtm_fd, char *username, char *password) {
-    char buffer[3000];
-    read(newtm_fd, buffer, 3000);
-
-    // Parse the HTTP request
-    HttpRequest httpRequest = parseHttpRequest(buffer);
-
-    // Extract the username and password from the query string
-    int hasUsername = 0;
-    int hasPassword = 0;
-    if (strchr(httpRequest.requestLine.uri.queryString, '&') != NULL) {
-        char *queryCopy = strdup(httpRequest.requestLine.uri.queryString);
-        char *pair = strtok(queryCopy, "&");
-        printf("Query string: %s\n", httpRequest.requestLine.uri.queryString);
-
-        while (pair != NULL) {
-            char *equalsSign = strchr(pair, '=');
-            if (equalsSign != NULL) {
-                *equalsSign = '\0'; // Replace the equals sign with a null terminator
-                char *key = pair;
-                char *value = equalsSign + 1;
-
-                if (strcmp(key, "username") == 0) {
-                    strcpy(username, value);
-                    username[sizeof(username)] = '\0';
-                    hasUsername = 1;
-                } else if (strcmp(key, "password") == 0) {
-                    strcpy(password, value);
-                    password[sizeof(password)] = '\0';
-                    hasPassword = 1;
-                }
-            }
-            pair = strtok(NULL, "&");
-        }
-        free(queryCopy);
-    }
-
-    // Only attempt login if both username and password are present in the query string
-    if (hasUsername && hasPassword) {
-        return attempt_login(newtm_fd, username, password);
-    } else {
-        //Send the login page as the HTTP response
-        handleRequest(newtm_fd, httpRequest, user);
-        return 1;
-    }
-}
-
-
-// Function to send a question request
-void send_question_request(curUser* user, int question_index, int cqbpipe[2], int pyqbpipe[2]) {
-    char code[3]; 
-    strncpy(code, "PQ", 3);  // Setting the command code to "PQ"
-
-    printf("Sending PQ for question %d\n", question_index + 1);
-
-    // Send the code "PQ" to the correct question bank based on the question type
-    int pipe_to_write = (strcmp(user->QB[question_index], "c") == 0) ? cqbpipe[1] : pyqbpipe[1];
-
-    if (write(pipe_to_write, code, 3) == -1) {
-        perror("write");
-    }
-
-    // Convert the index to network byte order before sending
-    uint32_t network_order_index = htonl(question_index);
-    if (write(pipe_to_write, &network_order_index, sizeof(network_order_index)) == -1) {
-        perror("write");
-    }
-
-    // Send the question ID itself to the question bank
-    if (write(pipe_to_write, user->QuestionID[question_index], 4) == -1) {
-        perror("write");
-    }
-
-    printf("Request sent for question ID: %s\n", user->QuestionID[question_index]);
-}
-
-
-//send_question_request(&user, question_index, cqbpipe, pyqbpipe);
-
-
-// Function to send an answer request
-void send_answer_request(curUser* user, int question_index, char* answer, int QBsocket) {
-    char code[3]; 
-    strncpy(code, "AN", 3);  // Setting the command code to "AN"
-
-    printf("Sending AN for question %d\n", question_index + 1);
-
-    if (send(QBsocket, code, 3, 0) == -1) // Send QB what it needs to prep for
-    {
-        perror("send");
-    }
-
-    // Convert the answer length to network byte order before sending
-    uint32_t network_order_length = htonl(strlen(answer));
-    if (send(QBsocket, &network_order_length, sizeof(network_order_length), 0) == -1) // Send answer string size to QB
-    {
-        perror("send");
-    }
-
-    if (send(QBsocket, answer, strlen(answer), 0) == -1) // Send answer to QB
-    {
-        perror("send");
-    }
-
-    // Send the user_filename instead of the QuestionID
-    if (send(QBsocket, user->user_filename, sizeof(user->user_filename), 0) == -1) 
-    {
-        perror("send");
-    }
-
-    char isAnswer[2];  // Buffer to store the response
-    if (recv(QBsocket, isAnswer, 1, 0) == -1) // Is answer right?
-    {
-        perror("recv");
-    }
-    isAnswer[1] = '\0';  // Ensure null termination
-
-    if (!strcmp(isAnswer, "Y"))
-        printf("Answer is right\n");
-    else
-        printf("Answer is wrong\n");
-}
-
-
-
 
 int main(int argc, char *argv[])
 {
@@ -362,28 +230,17 @@ int main(int argc, char *argv[])
     // Main port is 4125
     while (1)
     {
-        memset(&user, 0, sizeof(user)); // Make sure user structure is empty
-        memset(username, 0, sizeof(username));
-        memset(password, 0, sizeof(password));
         tm_size = sizeof tm_addr;
-        char acceptchar[2];
         FILE *fp;
+        char acceptchar[2];
         newtm_fd = accept(tm_fd, (struct sockaddr *)&tm_addr, &tm_size);
         if (newtm_fd == -1)
         {
             perror("accept");
             break;
         }
-        printf("connection made!\n");
-        //needs to change into if else loops
-        //checks the http header and first line.
-        //if the first line is a get request, then it will check the username and password
-
-        int dlReturn = displaylogin(newtm_fd, username, password);
-
-        printf("dlReturn: %i\n", dlReturn);
-
-        close(newtm_fd);
+        memset(username, 0, sizeof(username));
+        memset(password, 0, sizeof(password));
 
         switch (fork())
         {
@@ -396,27 +253,28 @@ int main(int argc, char *argv[])
             {
                 //close(tm_fd);
                 curUser user;
-                int loadValue = 0;
+                int loadvalue = 0;
                 char *cqbverf = NULL;
                 char *pqbverf = NULL;
-                int loginValue = -1;
-
-                if (dlReturn == 0)
-                {
-                    printf("here!\n");
-                    loginValue = login(username, password, &user);
-                }
-                else if (dlReturn == 2)
-                {
-                    printf("here2!\n");
-                    loginValue = 0;
-                }
-                else if (dlReturn == 1)
-                {
-                    printf("here3!\n");
-                    loginValue = -1;
-                }
-                
+                memset(username, 0, sizeof(username));
+                memset(password, 0, sizeof(password));
+                if (send(newtm_fd, "Please enter a username: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(newtm_fd, username, sizeof(username), 0) == -1)
+                    perror("recv");
+                if (send(newtm_fd, "Please enter a password: ", 25, 0) == -1)
+                    perror("send");
+                if (recv(newtm_fd, password, sizeof(password), 0) == -1)
+                    perror("recv");
+                username[strcspn(username, "\n")] = '\0'; // Remove delimiters for string matching to work
+                username[strcspn(username, "\r")] = '\0';
+                password[strcspn(password, "\n")] = '\0';
+                password[strcspn(password, "\r")] = '\0';
+                //char *returnvalue;
+                printf("USERNAME: %s\n", username);
+                printf("PASS: %s\n", password);
+                int loginValue = login(username, password, &user);
+                printf("File name is: %s\n", user.user_filename);
                 if (loginValue == -1) // Invalid Username (doesn't exist)
                 {
                     if (send(newtm_fd, "Username Invalid.\n", 19, 0) == -1)
@@ -429,21 +287,21 @@ int main(int argc, char *argv[])
                         perror("send");
                     continue;
                 }
+
                 printf("User signed in!\n");
                 printf("User filename is: %s\n", user.user_filename);
 
                 if (loginValue == 0) { // If file does exist
                     printf("File exists.\n");
-                    loadValue = loadUser(&user);
-                    printf("loadvalue is: %d\n", loadValue);
+                    loadvalue = loadUser(&user);
+                    printf("loadvalue is: %d\n", loadvalue);
                 }
                 
-                while (loginValue == -2 || loadValue == -1) // If file failed to open
+                if (loginValue == -2 || loadvalue == -1) // If file failed to open
                 {
                     printf("Calling generate new file.\n");
                     generatenewfile(&user);
                     printf("Generated new cookiefile\n");
-                    printf("user->user.filename: %s\n", user.user_filename);
                     printf("sending gq request\n");
                     if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
                     {
@@ -463,23 +321,12 @@ int main(int argc, char *argv[])
                         perror("write");
                     }
                     printf("received gq requests.\n");
-                    if (cqbverf == NULL && pqbverf == NULL) 
-                    {
-                        if (read(cqbpipe[0], cqbverf, 3) == -1)
-                            printf("error1\n");
-                            perror("read");
-                        if (read(pqbpipe[0], pqbverf, 3) == -1)
-                            printf("error2\n");
-                            perror("read");
-                    }
-                    //printf("Verifications: c %s python %s", cqbverf, pqbverf);
-                    loadValue = loadUser(&user);
-                    if (loadValue == 0)
+                    loadvalue = loadUser(&user);
+                    if (loadvalue == 0)
                         loginValue = 0;
-                    printf("user->user.filename: after all the writing to the file %s\n", user.user_filename);
                 }
 
-                if (loadValue == 0 && loginValue == 0) // Everything Works!
+                if (loadvalue == 0 && loginValue == 0) // Everything Works!
                 {
                     char code[3] = {0};
                     /*
@@ -491,9 +338,7 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-                    printf("user->user.filename: %s\n", user.user_filename);
-                    //sendRedirectResponse(newtm_fd, "/question_dashboard");
-                    displaylogin(newtm_fd, username, password);
+
                     printf("successful signin.\n");
                     while (1) // Testing QB connection
                     {
@@ -524,7 +369,7 @@ int main(int argc, char *argv[])
                             printf("index is: %d\n", index);
                             code[strcspn(code, "\n")] = '\0';
                             code[strcspn(code, "\r")] = '\0';
-                            if (strcasecmp(user.QB[index], "c"))
+                            if (!strcasecmp(user.QB[index], "c"))
                             {
                                 printf("Sending PQ to c\n");
                                 if (write(cqbpipe[1], "PQ", 3) == -1)
@@ -541,7 +386,7 @@ int main(int argc, char *argv[])
                                 }
                                 printf("Grabbing question");
                             }
-                            else if(strcasecmp(user.QB[index], "python"))
+                            else if(!strcasecmp(user.QB[index], "python"))
                             {
                                 printf("Sending PQ to p\n");
                                 if (write(pqbpipe[1], "PQ", 3) == -1)
