@@ -18,8 +18,7 @@ typedef struct curUser
     int questions[10];    // Each has a max of 3
     int score[10];        // Max of 3
     int total_score;      // Max of 30
-    char user_filename[9];
-    
+    char user_filename[13];
 } curUser;
 
 typedef struct {

@@ -34,7 +34,11 @@ char *randomStringGenerator()
         int k = rand() % (int)(sizeof(stringSet) - 1);
         randomstring[i] = stringSet[k];
     }
-    randomstring[8] = '\0';
+    randomstring[8] = '.';
+    randomstring[9] = 't';
+    randomstring[10] = 'x';
+    randomstring[11] = 't';
+    randomstring[12] = '\0';
     return randomstring;
 }
 
@@ -126,7 +130,7 @@ int attempt_login(int newtm_fd, char *username, char *password) {
         
         // Copy the user_filename into a temporary variable
         char temp_filename[9];
-        strncpy(temp_filename, user.user_filename, 9);
+        strncpy(temp_filename, user.user_filename, 13);
         
         // Redirect to the question dashboard
         printf("t\t\tsession_id %s\n", temp_filename);
@@ -406,6 +410,7 @@ int handleGETRequest(char *filepath, int newtm_fd)
                 return -1;
             }
             printf("Loading question dashboard up.\n");
+            printf("User file name is: %s\n", user.user_filename);
             sendHttpResponse(newtm_fd, "./ClientBrowser/question_dashboard.html", contenttype, user.user_filename);
             return 0;
         }
@@ -568,7 +573,7 @@ int main(int argc, char *argv[])
                     perror("write");
                 }
                 printf("Send request.\n");
-                if (write(cqbpipe[1], user.user_filename, 8) == -1)
+                if (write(cqbpipe[1], user.user_filename, 12) == -1)
                 {
                     perror("write");
                 }
@@ -577,7 +582,7 @@ int main(int argc, char *argv[])
                 {
                     perror("write");
                 }
-                if (write(pqbpipe[1], user.user_filename, 8) == -1)
+                if (write(pqbpipe[1], user.user_filename, 12) == -1)
                 {
                     perror("write");
                 }
