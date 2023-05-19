@@ -28,7 +28,7 @@ typedef struct curUser
     int questions[10];    // Each has a max of 3
     int score[10];        // Max of 3
     int total_score;      // Max of 30
-    char user_filename[9];
+    char user_filename[13];
 } curUser;
 curUser user;
 
@@ -68,6 +68,7 @@ int loadUser(curUser *user)
 {
     printf("Inside load user.\n");
 
+    printf("filename: %s\n", user->user_filename);
     char *line = NULL;
     char *buf = NULL;
     size_t linesize = 0;
@@ -77,7 +78,7 @@ int loadUser(curUser *user)
     user->total_score = 0;
     user->attempted = 0;
 
-    printf("Opening file");
+    printf("Opening file\n");
 
     FILE *fp;
     fp = fopen(user->user_filename, "r"); // Open user file
@@ -86,20 +87,17 @@ int loadUser(curUser *user)
         perror("fopen");
         return -1;
     }
-
     while ((linelen = getline(&line, &linesize, fp)) != -1)
     {
         printf("this is the counter: %d\n", QBcounter);
-        printf("Grabbing line.\n");
         printf("line is %s\n", line);
         
         buf = strtok(line, ";");
-        if (!strcmp(buf, "//"))
-        { // Comment line
-            continue;
-        }
         buf[strcspn(buf, "\n")] = '\0';
         buf[strcspn(buf, "\r")] = '\0';
+
+        //printf("buf: %s, size of buf: %i\n", buf, strlen(buf));
+
         if ((strcmp(buf, user->username)) && (strcmp(buf, "q")))
         { // If username in file doesn't match signed in user
             printf("Incorrect username in file!\nUsername in file: %sUsername given:%s\n", buf, user->username);
@@ -260,6 +258,7 @@ Uri parseUri(const char *uriString) {
     }
 
     strcpy(uri.path, copy);
+
     return uri;
 }
 
@@ -363,6 +362,7 @@ void generatenewfile(curUser *user)
     int counter = 0;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     strcpy(user->user_filename, randomstring);
+    strcat(user->user_filename, ".txt");
     FILE *fp = fopen(user->user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
@@ -442,7 +442,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
         {
             int temp = 0;
             char questionIDbuffer[32] = {0};
-            char filename[9] = {0};
+            char filename[13] = {0};
             int length = 0;
             char *buf = NULL;
             printf("Received gq request..\n");
@@ -467,7 +467,7 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             {
                 perror("read");
             }
-            printf("User file name is: %s\n", filename);
+            strcat(filename, ".txt");
             strcpy(user.user_filename, filename);
             FILE *ft = fopen(user.user_filename, "a"); // Open file in append mode
             if (ft == NULL)
@@ -620,6 +620,9 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 
 void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
+
+    printf("filepath: %s, contentType: %s\n", filePath, contentTypeString);
+
     char header[128];
     sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user.user_filename);
 
@@ -656,7 +659,7 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
 void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[128];
-    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\n\n", contentTypeString);
+    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user.user_filename);
 
     FILE *file = fopen(filePath, "rb");
     if (file == NULL) {
@@ -702,7 +705,7 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
 
 void sendRedirectResponse(int socket_fd, const char *location) {
     char header[256];
-    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location);
+    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nCache-Control: no-store\r\nSet-Cookie: session_id=%s\nContent-Length: ", location, user.user_filename);
     printf("Redirecting to: %s\n", location);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
@@ -713,6 +716,38 @@ int handleRequest(int socket_fd, HttpRequest httpRequest) {
     const char *filePath = NULL;
     ContentType contentType = HTML;
     int pathType = 0;
+
+    // printf("httpRequest.requestLine.uri.path: %s\n", httpRequest.requestLine.uri.path);
+    char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
+
+    char *queryCopy = strdup(httpRequest.requestLine.uri.path);
+    char uriID[15];
+    char *pch = NULL;
+    pch = strtok(queryCopy, "_");
+    char *previous = pch;
+    // printf("previous: %s\n", previous);
+
+    // pch=strtok(NULL, "_");
+    // if (strcmp(previous, "/question") == 0)
+    // {
+    //     strcpy(uriID, pch);
+    // }
+
+    // char *pchID;
+    // pchID = strtok(uriID, ".");
+
+    // for (int i=0; i<10; i++)
+    // {
+    //     if (strcmp(pchID, qIDs[i]) == 0)
+    //     {
+    //         printf("pchID: %s\n", pchID); 
+    //         printf("qIDs[i]: %s\n", qIDs[i]);
+    //         filePath="./ClientBrowser/question_coding.html";
+    //         contentType= HTML;     
+    //         // sendHttpResponse(socket_fd, filePath, contentType);
+    //         return pathType;
+    //     }
+    // }
 
     if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
         filePath = "./ClientBrowser/login.html";
@@ -763,7 +798,8 @@ int handleRequest(int socket_fd, HttpRequest httpRequest) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
         pathType = 12;
-    } else {
+    }
+    else {
         // Handle file not found error
         sendHttpResponse(socket_fd, "/error.html", HTML);
         pathType = -1;
@@ -946,7 +982,7 @@ int main(int argc, char *argv[])
 
                 loginValue = login(username, password, &user);
                 
-                if (loginValue == -2)
+                if (loginValue == -2) // ADD || loadValue == -1) in the if statement once loadUser sorted
                 {
                     generatenewfile(&user);
                     printf("user->user.filename: %s\n", user.user_filename);
@@ -979,8 +1015,9 @@ int main(int argc, char *argv[])
                             printf("error2\n");
                             perror("read");
                     }
-                    printf("Verifications: c %s python %s", cqbverf, pqbverf);
+                    printf("Verifications: c %s python %s\n", cqbverf, pqbverf);
                     loadValue = loadUser(&user);
+                    if (loadValue == 0) {loginValue=0;}
                     printf("loadValue: %i\n", loadValue);
                 }
                 else if (loginValue == -1 || loginValue == 1) //username doesn't exist or password is wrong
@@ -999,13 +1036,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        printf("httpRequest.requestLine.uri: %s\n", httpRequest.requestLine.uri.path);
-
-
-
         int r = handleRequest(newtm_fd, httpRequest);
-        printf("httpRequest: %i\n", r);
-        printf("\tclosing connection...\n");
+        // printf("httpRequest: %i\n", r);
+        // printf("\tclosing connection...\n");
         close(newtm_fd);
 
         // switch (fork())

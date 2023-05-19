@@ -732,6 +732,7 @@ void sendRedirectResponse(int socket_fd, const char *location) {
     char header[256];
     sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user.user_filename);
     printf("Redirecting to: %s\n", location);
+    printf("t\t\tsession_id11111111111111 %s\n", user.user_filename);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
 }
@@ -742,6 +743,38 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
     // Determine the file path based on the request
     const char *filePath = NULL;
     ContentType contentType = HTML;
+
+    // printf("httpRequest.requestLine.uri.path: %s\n", httpRequest.requestLine.uri.path);
+    char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
+
+    char *queryCopy = strdup(httpRequest.requestLine.uri.path);
+    char uriID[15];
+    char *pch = NULL;
+    pch = strtok(queryCopy, "_");
+    char *previous = pch;
+    // printf("previous: %s\n", previous);
+
+    // pch=strtok(NULL, "_");
+    // if (strcmp(previous, "/question") == 0)
+    // {
+    //     strcpy(uriID, pch);
+    // }
+
+    // char *pchID;
+    // pchID = strtok(uriID, ".");
+
+    // for (int i=0; i<10; i++)
+    // {
+    //     if (strcmp(pchID, qIDs[i]) == 0)
+    //     {
+    //         printf("pchID: %s\n", pchID); 
+    //         printf("qIDs[i]: %s\n", qIDs[i]);
+    //         filePath="./ClientBrowser/question_coding.html";
+    //         contentType= HTML;     
+    //         // sendHttpResponse(socket_fd, filePath, contentType);
+    //         return pathType;
+    //     }
+    // }
 
     if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
         filePath = "./ClientBrowser/login.html";
@@ -780,16 +813,28 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
+<<<<<<< HEAD
+        pathType = 12;
+    }
+    else {
+=======
     } else {
+>>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
         // Handle file not found error
         sendHttpResponse(socket_fd, "/error.html", HTML);
         return;
     }
+<<<<<<< HEAD
+    // Send the HTTP response with the appropriate file
+    sendHttpResponse(socket_fd, filePath, contentType);
+    return pathType;
+=======
 
     printf("user_filename before sending HTTP response: %s\n", user.user_filename);
     sendHttpResponse(socket_fd, filePath, contentType);
     printf("user_filename after sending HTTP response: %s\n", user.user_filename);
 
+>>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
 }
 
 // Tries to log in with a given username and password.
@@ -800,6 +845,7 @@ int attempt_login(int newtm_fd, char *username, char *password) {
     if (login_result == 0) {
         printf("Login succeeded.\n");
         // Redirect to the question dashboard
+        printf("t\t\tsession_i qrqw4trq32443 %s\n", user.user_filename);
         sendRedirectResponse(newtm_fd, "/question_dashboard");
         return 0;
     } else {
@@ -848,6 +894,10 @@ int displaylogin(int newtm_fd, char *username, char *password) {
 
     // Only attempt login if both username and password are present in the query string
     if (hasUsername && hasPassword) {
+<<<<<<< HEAD
+
+=======
+>>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
         return attempt_login(newtm_fd, username, password);
     } else {
         //Send the login page as the HTTP response
@@ -1099,6 +1149,7 @@ int main(int argc, char *argv[])
                     printf("Calling generate new file.\n");
                     generatenewfile(&user);
                     printf("Generated new cookiefile\n");
+                    printf("user->user.filename: %s\n", user.user_filename);
                     printf("sending gq request\n");
                     if (write(cqbpipe[1], "GQ", 3) == -1) // Generate questions from C QB
                     {
@@ -1121,14 +1172,17 @@ int main(int argc, char *argv[])
                     if (cqbverf == NULL && pqbverf == NULL) 
                     {
                         if (read(cqbpipe[0], cqbverf, 3) == -1)
+                            printf("error1\n");
                             perror("read");
                         if (read(pqbpipe[0], pqbverf, 3) == -1)
+                            printf("error2\n");
                             perror("read");
                     }
-                    printf("Verifications: c %s python %s", cqbverf, pqbverf);
+                    //printf("Verifications: c %s python %s", cqbverf, pqbverf);
                     loadValue = loadUser(&user);
                     if (loadValue == 0)
                         loginValue = 0;
+                    printf("user->user.filename: after all the writing to the file %s\n", user.user_filename);
                 }
 
                 if (loadValue == 0 && loginValue == 0) // Everything Works!
@@ -1143,66 +1197,69 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-
+                    printf("user->user.filename: %s\n", user.user_filename);
+                    //sendRedirectResponse(newtm_fd, "/question_dashboard");
                     printf("successful signin.\n");
-                    while (1) // Testing QB connection
-                    {
-                        int indexbuf = 0;
-                        int index = 0;
-                        memset(code, 0, sizeof(code));
-                        if (send(newtm_fd, "Please enter a code: ", 20, 0) == -1)
-                            perror("send");
-                        if (recv(newtm_fd, code, 2, 0) == -1)
-                            perror("recv");
-                        code[strcspn(code, "\n")] = '\0';
-                        code[strcspn(code, "\r")] = '\0';
 
-                        if (!strcmp(code, "PQ")) {
-                            if (send(newtm_fd, "Please enter a question index: ", 31, 0) == -1)
-                                perror("send");
-                            if (recv(newtm_fd, &indexbuf, 4, 0) == -1)
-                                perror("recv");
-                            index = ntohl(indexbuf);
-                            code[strcspn(code, "\n")] = '\0';
-                            code[strcspn(code, "\r")] = '\0';
-                            if (strcasecmp(user.QB[2], "c"))
-                            {
-                                printf("Sending PQ to c\n");
-                                if (write(cqbpipe[1], "PQ", 3) == -1)
-                                {
-                                    perror("write");
-                                }
-                                if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
-                                {
-                                    perror("write");
-                                }
-                                if (write(cqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
-                                {
-                                    perror("write");
-                                }
-                                printf("Grabbing question");
-                            }
-                            else if(strcasecmp(user.QB[2], "python"))
-                            {
-                                printf("Sending PQ to p\n");
-                                if (write(pqbpipe[1], "PQ", 3) == -1)
-                                {
-                                    perror("write");
-                                }
-                                if (write(pqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
-                                {
-                                    perror("write");
-                                }
-                                printf("Question ID is: %s\n", user.QuestionID[index]);
-                                if (write(pqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
-                                {
-                                    perror("write");
-                                }
-                                printf("Grabbing question");
-                            }
-                        }
-                    }
-                    //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
+                    
+                    // while (1) // Testing QB connection
+                    // {
+                    //     int indexbuf = 0;
+                    //     int index = 0;
+                    //     memset(code, 0, sizeof(code));
+                    //     if (send(newtm_fd, "Please enter a code: ", 20, 0) == -1)
+                    //         perror("send");
+                    //     if (recv(newtm_fd, code, 2, 0) == -1)
+                    //         perror("recv");
+                    //     code[strcspn(code, "\n")] = '\0';
+                    //     code[strcspn(code, "\r")] = '\0';
+
+                    //     if (!strcmp(code, "PQ")) {
+                    //         if (send(newtm_fd, "Please enter a question index: ", 31, 0) == -1)
+                    //             perror("send");
+                    //         if (recv(newtm_fd, &indexbuf, 4, 0) == -1)
+                    //             perror("recv");
+                    //         index = ntohl(indexbuf);
+                    //         code[strcspn(code, "\n")] = '\0';
+                    //         code[strcspn(code, "\r")] = '\0';
+                    //         if (strcasecmp(user.QB[2], "c"))
+                    //         {
+                    //             printf("Sending PQ to c\n");
+                    //             if (write(cqbpipe[1], "PQ", 3) == -1)
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             if (write(cqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             if (write(cqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             printf("Grabbing question");
+                    //         }
+                    //         else if(strcasecmp(user.QB[2], "python"))
+                    //         {
+                    //             printf("Sending PQ to p\n");
+                    //             if (write(pqbpipe[1], "PQ", 3) == -1)
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             if (write(pqbpipe[1], &index, sizeof(int)) == -1) // Question 2 is index 3
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             printf("Question ID is: %s\n", user.QuestionID[index]);
+                    //             if (write(pqbpipe[1], user.QuestionID[index], 4) == -1) // Question 2 is index 3
+                    //             {
+                    //                 perror("write");
+                    //             }
+                    //             printf("Grabbing question");
+                    //         }
+                    //     }
+                    // }
+                    // //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
                     close(newtm_fd);
                     close(cqbpipe[1]);
                     close(cqbpipe[0]);
