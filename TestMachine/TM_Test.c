@@ -710,6 +710,7 @@ void sendRedirectResponse(int socket_fd, const char *location) {
     char header[256];
     sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user.user_filename);
     printf("Redirecting to: %s\n", location);
+    printf("t\t\tsession_id11111111111111 %s\n", user.user_filename);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
 }
@@ -823,6 +824,7 @@ int attempt_login(int newtm_fd, char *username, char *password) {
     if (login_result == 0) {
         printf("Login succeeded.\n");
         // Redirect to the question dashboard
+        printf("t\t\tsession_i qrqw4trq32443 %s\n", user.user_filename);
         sendRedirectResponse(newtm_fd, "/question_dashboard");
         return 0;
     } else {
@@ -1152,10 +1154,11 @@ int main(int argc, char *argv[])
                             printf("error2\n");
                             perror("read");
                     }
-                    printf("Verifications: c %s python %s", cqbverf, pqbverf);
+                    //printf("Verifications: c %s python %s", cqbverf, pqbverf);
                     loadValue = loadUser(&user);
                     if (loadValue == 0)
                         loginValue = 0;
+                    printf("user->user.filename: after all the writing to the file %s\n", user.user_filename);
                 }
 
                 if (loadValue == 0 && loginValue == 0) // Everything Works!
@@ -1170,8 +1173,11 @@ int main(int argc, char *argv[])
                     REMEMBER: CQB NOR PQB HAVE THE CORRECT USER STRUCTURE, YOU WILL NEED TO PASS THEM THE REQUIRED INFO.
                     After the user closes the browser make sure the connection is broken (goes through below close() steps)
                     */
-
+                    printf("user->user.filename: %s\n", user.user_filename);
+                    //sendRedirectResponse(newtm_fd, "/question_dashboard");
                     printf("successful signin.\n");
+
+                    
                     // while (1) // Testing QB connection
                     // {
                     //     int indexbuf = 0;
