@@ -22,7 +22,7 @@ window.onload = function() {
     }
     
     // Use the session id to build the file name
-    var fileName = sessionId + '.txt';
+    var fileName = '../' + sessionId + '.txt';
     
     var xhr = new XMLHttpRequest();
     xhr.open('GET', fileName, true);
