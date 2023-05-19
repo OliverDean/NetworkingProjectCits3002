@@ -641,12 +641,12 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
 }
 
 // Sends an HTTP response with a text-based file. 
-// It takes a socket file descriptor, the file path to respond with, and the content type of the file.
-void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType) {
+// It takes a socket file descriptor, the file path to respond with, the content type of the file, and a session ID.
+void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType, const char *user_filename) {
     const char *contentTypeString = getContentTypeString(contentType);
     char header[256];
-    printf("session_id %s\n", user.user_filename);
-    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user.user_filename);
+    printf("session_id %s\n", user_filename);
+    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user_filename);
 
     char *fileText = NULL;
     FILE *file = fopen(filePath, "r");
@@ -677,6 +677,8 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     free(fileText);
     free(fullhttp);
 }
+
+
 
 // Same as sendHttpResponse, but for images
 void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType) {
@@ -728,11 +730,11 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
 
 // Function sends an HTTP response that redirects to a different location.
 // It takes a socket file descriptor and the target location URL.
-void sendRedirectResponse(int socket_fd, const char *location) {
+void sendRedirectResponse(int socket_fd, const char *location, const char *user_filename) {
     char header[256];
-    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user.user_filename);
+    sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user_filename);
     printf("Redirecting to: %s\n", location);
-    printf("t\t\tsession_id11111111111111 %s\n", user.user_filename);
+    printf("t\t\tsession_id %s\n", user_filename);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
 }
@@ -740,60 +742,23 @@ void sendRedirectResponse(int socket_fd, const char *location) {
 // The handleRequest function processes an HTTP request and sends the appropriate response.
 // It takes a socket file descriptor and an HttpRequest structure.
 void handleRequest(int socket_fd, HttpRequest httpRequest) {
-    // Determine the file path based on the request
     const char *filePath = NULL;
     ContentType contentType = HTML;
 
-    // printf("httpRequest.requestLine.uri.path: %s\n", httpRequest.requestLine.uri.path);
     char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
-
     char *queryCopy = strdup(httpRequest.requestLine.uri.path);
-    char uriID[15];
-    char *pch = NULL;
-    pch = strtok(queryCopy, "_");
-    char *previous = pch;
-    // printf("previous: %s\n", previous);
+    free(queryCopy); // remember to free the allocated memory
 
-    // pch=strtok(NULL, "_");
-    // if (strcmp(previous, "/question") == 0)
-    // {
-    //     strcpy(uriID, pch);
-    // }
-
-    // char *pchID;
-    // pchID = strtok(uriID, ".");
-
-    // for (int i=0; i<10; i++)
-    // {
-    //     if (strcmp(pchID, qIDs[i]) == 0)
-    //     {
-    //         printf("pchID: %s\n", pchID); 
-    //         printf("qIDs[i]: %s\n", qIDs[i]);
-    //         filePath="./ClientBrowser/question_coding.html";
-    //         contentType= HTML;     
-    //         // sendHttpResponse(socket_fd, filePath, contentType);
-    //         return pathType;
-    //     }
-    // }
-
-    if (strcmp(httpRequest.requestLine.uri.path, "/") == 0) {
+    if (strcmp(httpRequest.requestLine.uri.path, "/") == 0 || strcmp(httpRequest.requestLine.uri.path, "/login") == 0) {
         filePath = "./ClientBrowser/login.html";
-        contentType = HTML;
-    } else if (strcmp(httpRequest.requestLine.uri.path, "/login") == 0) {
-        filePath = "./ClientBrowser/login.html";
-        contentType = HTML;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/logout") == 0) {
         filePath = "./ClientBrowser/logout.html";
-        contentType = HTML;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_coding") == 0) {
         filePath = "./ClientBrowser/question_coding.html";
-        contentType = HTML;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_multi") == 0) {
         filePath = "./ClientBrowser/question_multi.html";
-        contentType = HTML;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question_dashboard") == 0) {
         filePath = "./ClientBrowser/question_dashboard.html";
-        contentType = HTML;
     } else if (strcmp(httpRequest.requestLine.uri.path, "/styles.css") == 0) {
         filePath = "./ClientBrowser/styles.css";
         contentType = CSS;
@@ -801,6 +766,7 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
         filePath = "./ClientBrowser/icon.jpg";
         contentType = JPEG;
         sendImageResponse(socket_fd, filePath, contentType);
+        return; // Return after sending image response
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateDashboard.js") == 0) {
         filePath = "./ClientBrowser/populateDashboard.js";
         contentType = JS;
@@ -813,28 +779,19 @@ void handleRequest(int socket_fd, HttpRequest httpRequest) {
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
-<<<<<<< HEAD
-        pathType = 12;
     }
-    else {
-=======
+
+    if (filePath != NULL) {
+        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
+        printf("user_filename before sending HTTP response: %s\n", filename);
+        sendHttpResponse(socket_fd, filePath, contentType, user.user_filename);
+
+        printf("user_filename after sending HTTP response: %s\n", filename);
     } else {
->>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
-        // Handle file not found error
-        sendHttpResponse(socket_fd, "/error.html", HTML);
-        return;
+        // If filePath is null, send error response
+        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "butts";
+        sendHttpResponse(socket_fd, "./ClientBrowser/error.html", HTML, filename);
     }
-<<<<<<< HEAD
-    // Send the HTTP response with the appropriate file
-    sendHttpResponse(socket_fd, filePath, contentType);
-    return pathType;
-=======
-
-    printf("user_filename before sending HTTP response: %s\n", user.user_filename);
-    sendHttpResponse(socket_fd, filePath, contentType);
-    printf("user_filename after sending HTTP response: %s\n", user.user_filename);
-
->>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
 }
 
 // Tries to log in with a given username and password.
@@ -844,10 +801,20 @@ int attempt_login(int newtm_fd, char *username, char *password) {
     int login_result = login(username, password, &user);
     if (login_result == 0) {
         printf("Login succeeded.\n");
+        
+        // Copy the user_filename into a temporary variable
+        char temp_filename[9];
+        strncpy(temp_filename, user.user_filename, 9);
+        
         // Redirect to the question dashboard
-        printf("t\t\tsession_i qrqw4trq32443 %s\n", user.user_filename);
-        sendRedirectResponse(newtm_fd, "/question_dashboard");
-        return 0;
+        printf("t\t\tsession_id %s\n", temp_filename);
+        
+        if (!temp_filename[0] == '\0') {
+            // Pass the temp_filename to the sendRedirectResponse function
+            sendRedirectResponse(newtm_fd, "/question_dashboard", temp_filename);
+        }
+        
+        return 2;
     } else {
         printf("Login failed with error code: %d\n", login_result);
         return login_result;
@@ -894,10 +861,6 @@ int displaylogin(int newtm_fd, char *username, char *password) {
 
     // Only attempt login if both username and password are present in the query string
     if (hasUsername && hasPassword) {
-<<<<<<< HEAD
-
-=======
->>>>>>> f4b24607960611edaff3857f4c25cab1357556fe
         return attempt_login(newtm_fd, username, password);
     } else {
         //Send the login page as the HTTP response
@@ -1199,6 +1162,7 @@ int main(int argc, char *argv[])
                     */
                     printf("user->user.filename: %s\n", user.user_filename);
                     //sendRedirectResponse(newtm_fd, "/question_dashboard");
+
                     printf("successful signin.\n");
 
                     
