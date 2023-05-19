@@ -1018,6 +1018,32 @@ void send_answer_request(curUser *user, int question_index, char *answer, int QB
         printf("Answer is wrong\n");
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main(int argc, char *argv[])
 {
     char username[32] = {0};
