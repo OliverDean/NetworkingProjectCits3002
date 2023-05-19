@@ -50,6 +50,25 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
+    } else if (strstr(httpRequest.requestLine.uri.path, "/question=") != NULL) {
+        printf("Inside question grab.\n");
+        char *quest = httpRequest.requestLine.uri.path;
+        printf("Quest is: %s\n", quest);
+        char *end = strstr(httpRequest.requestLine.uri.path, ".html");
+        printf("End is %s\n", end);
+        char questionIndex[4] = {0};
+        quest += 10;
+        printf("Quest now is: %s\n", quest);
+        int counter = 0;
+        while (*quest != *end)
+        {
+            questionIndex[counter] = *quest;
+            quest++;
+            counter++;
+        }
+        printf("Question index is: %s\n", questionIndex); // This is a-g plz change
+        
+        // Grab question info using PQ command to questionbank
     }
     printf("No similarities found in handleRequest.\n");
 
@@ -64,11 +83,11 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
 
     if (filePath != NULL) {
         char temp[1024] = {0};
-            sprintf(temp, ".%s", filePath);
-            printf("Temp is: %s\n", temp);
-            const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
-            printf("user_filename before sending HTTP response: %s\n", filename);
-            sendHttpResponse(socket_fd, temp, contentType, user.user_filename);
+        sprintf(temp, ".%s", filePath);
+        printf("Temp is: %s\n", temp);
+        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
+        printf("user_filename before sending HTTP response: %s\n", filename);
+        sendHttpResponse(socket_fd, temp, contentType, user.user_filename);
     } else {
         // If filePath is null, send error response
         printf("File path null: %s\n", filePath);
