@@ -71,7 +71,7 @@ function displayQuestions(questions) { // New function to handle displaying the 
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${item.id}.html`;
+        questionLink.href = `question=${item.id}.html`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';
