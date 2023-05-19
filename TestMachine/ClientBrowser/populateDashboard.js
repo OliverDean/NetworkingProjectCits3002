@@ -16,24 +16,76 @@ window.onload = function() {
             break;
         }
     }
+
+    // If the session id wasn't found in the cookies, make the request to get it
     if (sessionId === '') {
-        console.error('Session id not found in the cookies');
-        return;
-    }
-    
-    // Use the session id to build the file name
-    var fileName = '../' + sessionId;
-    
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', fileName, true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-            var questions = parseQuestions(xhr.responseText); // Store the returned questions
-            displayQuestions(questions); // Call a new function that will handle displaying the questions
+        console.log('Session id not found in the cookies. Making a request to get it.');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/session', true); // replace '/session' with the URL you get the session id from
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                sessionId = xhr.getResponseHeader('X-Session-ID'); // replace 'X-Session-ID' with the name of the header field the server is using to return the session id
+                
+                if (sessionId === null) {
+                    console.error('Session id not found in the response headers');
+                } else {
+                    console.log('Session id found in the response headers:', sessionId);
+                    // Proceed to use sessionId
+                    // For example, build the file name
+                    var fileName = '../' + sessionId;
+                }
+            }
         }
+        xhr.send(null);
+    } else {
+        console.log('Session id found in the cookies:', sessionId);
+        // Use the session id to build the file name
+        var fileName = '../' + sessionId;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', fileName, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var questions = parseQuestions(xhr.responseText); // Store the returned questions
+                displayQuestions(questions); // Call a new function that will handle displaying the questions
+            }
+        }
+        xhr.send(null);
     }
-    xhr.send(null);
 }
+
+
+
+// window.onload = function() {
+//     // Extract the session id from the cookies
+//     var cookies = document.cookie.split(';');
+//     var sessionId = '';
+//     for (var i = 0; i < cookies.length; i++) {
+//         var cookie = cookies[i].trim();
+//         if (cookie.startsWith('session_id=')) {
+//             sessionId = cookie.substring('session_id='.length, cookie.length);
+//             break;
+//         }
+//     }
+//     if (sessionId === '') {
+//         console.error('Session id not found in the cookies');
+//         return;
+//     }
+    
+//     // Use the session id to build the file name
+//     var fileName = '../' + sessionId;
+    
+//     var xhr = new XMLHttpRequest();
+//     xhr.open('GET', fileName, true);
+//     xhr.onreadystatechange = function () {
+//         if (xhr.readyState == 4 && xhr.status == 200) {
+//             var questions = parseQuestions(xhr.responseText); // Store the returned questions
+//             displayQuestions(questions); // Call a new function that will handle displaying the questions
+//         }
+//     }
+//     xhr.send(null);
+// }
 
 
 
