@@ -160,6 +160,7 @@ void generatenewfile(curUser *user)
     int counter = 0;
     char *randomstring = randomStringGenerator(); // Generate new user cookie
     strcpy(user->user_filename, randomstring);
+    printf("Users cookie file is: %s\n", user->user_filename);
     FILE *fp = fopen(user->user_filename, "w"); // Create new user cookie file
     if (fp == NULL)
     {
@@ -202,6 +203,7 @@ void generatenewfile(curUser *user)
                     remove(buf);
                 }
                 fseek(new, counter, SEEK_SET);             // Move up file pointer to end of line (after users password)
+                printf("Users username is: %s\n", user->username);
                 fprintf(new, "%s;\n", user->user_filename); // Add users cookie filename
                 fprintf(fp, "%s;\n", user->username);       // Add users username to their own cookie file
             }

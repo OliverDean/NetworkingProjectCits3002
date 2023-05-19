@@ -90,8 +90,7 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     int total_length = strlen(header) + strlen(fileText) + (sizeof(char) * 12);
     char *fullhttp = malloc(sizeof(char) * total_length);
     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
-
-    printf("Sending this HTTP request: %s\n", fullhttp);
+    
     // Send the HTTP response
     write(socket_fd, fullhttp, strlen(fullhttp));
 

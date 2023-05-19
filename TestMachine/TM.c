@@ -34,11 +34,7 @@ char *randomStringGenerator()
         int k = rand() % (int)(sizeof(stringSet) - 1);
         randomstring[i] = stringSet[k];
     }
-    randomstring[8] = '.';
-    randomstring[9] = 't';
-    randomstring[10] = 'x';
-    randomstring[11] = 't';
-    randomstring[12] = '\0';
+    randomstring[8] = '\0';
     return randomstring;
 }
 
@@ -414,6 +410,7 @@ int handleGETRequest(char *filepath, int newtm_fd)
             return 0;
         }
         else if (loginvalue == -2) {
+            printf("Generating new file..\n");
             generatenewfile(&user);
             return -1;
         }
@@ -584,7 +581,6 @@ int main(int argc, char *argv[])
                 {
                     perror("write");
                 }
-                revalue = handleGETRequest(htpr.requestLine.uri.queryString, newtm_fd);
             }
             else if (revalue == 0)
             {
@@ -592,10 +588,6 @@ int main(int argc, char *argv[])
             }   
             //send(newtm_fd, questionDashboard(), strlen(questionDashboard()), 0);
             close(newtm_fd);
-            close(cqbpipe[1]);
-            close(cqbpipe[0]);
-            close(pqbpipe[0]);
-            close(pqbpipe[1]);
             break;
         default:
             close(newtm_fd);

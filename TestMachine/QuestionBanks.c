@@ -50,6 +50,10 @@ void QuestionBanks(int QBsocket, int pipe[2], char *QBversion)
             }
             printf("User file name is: %s\n", filename);
             FILE *ft = fopen(filename, "a"); // Open file in append mode
+            char *line = NULL;
+            size_t linesize = 0;
+            getline(&line, &linesize, ft);
+            printf("Line currently in file is: %s\n", line);
             if (ft == NULL)
             {
                 perror("fopen");
