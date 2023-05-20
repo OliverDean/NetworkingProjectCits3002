@@ -51,7 +51,7 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
     }
-    printf("No similarities found in handleRequest.\n");
+    //printf("No similarities found in handleRequest.\n");
 
     printf("Checking to see if path is true.\n");
     if (*httpRequest.requestLine.uri.path != 0 && filePath == NULL) {
@@ -72,7 +72,7 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
     } else {
         // If filePath is null, send error response
         printf("File path null: %s\n", filePath);
-        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "butts";
+        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "error";
         sendHttpResponse(socket_fd, "./ClientBrowser/error.html", HTML, filename);
     }
 }
@@ -108,7 +108,7 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     char *fullhttp = malloc(sizeof(char) * total_length);
     snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
     
-    printf("FULLHTTP IS: %s\n", fullhttp);
+    //printf("FULLHTTP IS: %s\n", fullhttp);
     // Send the HTTP response
     write(socket_fd, fullhttp, strlen(fullhttp));
 
