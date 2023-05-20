@@ -21,6 +21,8 @@
 
 curUser user;
 
+int cqbpipe[2], pqbpipe[2];
+
 // Generates random string for user cookie file
 // Returns said string
 char *randomStringGenerator()
@@ -371,6 +373,45 @@ char* loginPage()
     return fullhttp;
 }
 
+void getQuestion(int cin, int cout, int pin, int pout, int questionIndex, curUser user) {
+    int index = questionIndex--;
+    if (!strcasecmp(user.QB[index], "c"))
+    {
+        printf("Sending PQ to c\n");
+        if (write(cout, "PQ", 3) == -1)
+        {
+            perror("write");
+        }
+        if (write(cout, &index, sizeof(int)) == -1) // Sending question index
+        {
+            perror("write");
+        }
+        if (write(cout, user.QuestionID[index], 4) == -1) // Sending questionID
+        {
+            perror("write");
+        }
+        printf("Grabbing question");
+    }
+    else if(!strcasecmp(user.QB[index], "python"))
+    {
+        printf("Sending PQ to p\n");
+        if (write(pout, "PQ", 3) == -1)
+        {
+            perror("write");
+        }
+        if (write(pout, &index, sizeof(int)) == -1) // Question 2 is index 3
+        {
+            perror("write");
+        }
+        printf("Question ID is: %s\n", user.QuestionID[index]);
+        if (write(pout, user.QuestionID[index], 4) == -1) // Question 2 is index 3
+        {
+            perror("write");
+        }
+        printf("Grabbing question");
+    }
+}
+
 int handleGETRequest(char *filepath, int newtm_fd)
 {
     if(strstr(filepath, "username") != NULL)
@@ -430,6 +471,12 @@ int handleGETRequest(char *filepath, int newtm_fd)
         printf("Getting login page!\n");
         sendHttpResponse(newtm_fd, "./ClientBrowser/login.html", contenttype, user.user_filename);
     }
+    else if (strstr(filepath, "question")) // This is a question
+    {
+        char *questionIndex = strstr(filepath, "question");
+        questionIndex += 10;
+        printf("Question index is: %s\n", questionIndex);
+    }
     return 1;
 }
 
@@ -443,7 +490,6 @@ int main(int argc, char *argv[])
     struct addrinfo cqb_addr, pqb_addr, tm_addr;
     int cqb_fd, pqb_fd, tm_fd;
     int newc_fd, newp_fd, newtm_fd;
-    int cqbpipe[2], pqbpipe[2];
 
     if (pipe(cqbpipe) == -1)
     {
@@ -552,6 +598,12 @@ int main(int argc, char *argv[])
             if (recv(newtm_fd, getBuffer, 4128, 0) == -1)
             {
                 perror("recv");
+            }
+            printf("Get buffer is: %s\n", getBuffer);
+            char *cookie = strstr(getBuffer, "session_id");
+            cookie += 11;
+            if (*cookie != 0) {
+                loadUser(&user);
             }
             HttpRequest htpr = parseHttpRequest(getBuffer);
             printf("Request mode is: %s\n", htpr.requestLine.method);

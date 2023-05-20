@@ -6,94 +6,22 @@
 // filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
 
 window.onload = function() {
-    // Extract the session id from the cookies
-    var cookies = document.cookie.split(';');
-    var sessionId = '';
-    for (var i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        if (cookie.startsWith('session_id=')) {
-            sessionId = cookie.substring('session_id='.length, cookie.length);
-            break;
-        }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'user_cookie_file.txt', true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200)
+            var questions = parseQuestions(xhr.responseText); // Store the returned questions
+            displayQuestions(questions); // Call a new function that will handle displaying the questions
     }
-
-    // If the session id wasn't found in the cookies, make the request to get it
-    if (sessionId === '') {
-        console.log('Session id not found in the cookies. Making a request to get it.');
-        
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/session', true); // replace '/session' with the URL you get the session id from
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                sessionId = xhr.getResponseHeader('X-Session-ID'); // replace 'X-Session-ID' with the name of the header field the server is using to return the session id
-                
-                if (sessionId === null) {
-                    console.error('Session id not found in the response headers');
-                } else {
-                    console.log('Session id found in the response headers:', sessionId);
-                    // Proceed to use sessionId
-                    // For example, build the file name
-                    var fileName = '../' + sessionId;
-                }
-            }
-        }
-        xhr.send(null);
-    } else {
-        console.log('Session id found in the cookies:', sessionId);
-        // Use the session id to build the file name
-        var fileName = '../' + sessionId;
-
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', fileName, true);
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                var questions = parseQuestions(xhr.responseText); // Store the returned questions
-                displayQuestions(questions); // Call a new function that will handle displaying the questions
-            }
-        }
-        xhr.send(null);
-    }
+    xhr.send(null);
 }
 
 
-
-// window.onload = function() {
-//     // Extract the session id from the cookies
-//     var cookies = document.cookie.split(';');
-//     var sessionId = '';
-//     for (var i = 0; i < cookies.length; i++) {
-//         var cookie = cookies[i].trim();
-//         if (cookie.startsWith('session_id=')) {
-//             sessionId = cookie.substring('session_id='.length, cookie.length);
-//             break;
-//         }
-//     }
-//     if (sessionId === '') {
-//         console.error('Session id not found in the cookies');
-//         return;
-//     }
-    
-//     // Use the session id to build the file name
-//     var fileName = '../' + sessionId;
-    
-//     var xhr = new XMLHttpRequest();
-//     xhr.open('GET', fileName, true);
-//     xhr.onreadystatechange = function () {
-//         if (xhr.readyState == 4 && xhr.status == 200) {
-//             var questions = parseQuestions(xhr.responseText); // Store the returned questions
-//             displayQuestions(questions); // Call a new function that will handle displaying the questions
-//         }
-//     }
-//     xhr.send(null);
-// }
-
-
-
-// window.onload = function() {
-//     var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
-//     var questions = parseQuestions(filedata); // Parse the filedata string
-//     displayQuestions(questions); // Display the parsed questions
-// }
+window.onload = function() {
+    var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
+    var questions = parseQuestions(filedata); // Parse the filedata string
+    displayQuestions(questions); // Display the parsed questions
+}
 
 
 function getStatus(attempts) {
@@ -143,7 +71,7 @@ function displayQuestions(questions) { // New function to handle displaying the 
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${item.id}.html`;
+        questionLink.href = `question=${item.id}.html`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';

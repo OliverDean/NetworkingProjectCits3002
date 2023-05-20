@@ -61,4 +61,5 @@ extern void sendHttpResponse(int socket_fd, const char *filePath, ContentType co
 extern Uri parseUri(const char *uriString);
 extern HttpRequest parseHttpRequest(const char *request);
 const char* getContentTypeString(ContentType contentType);
+extern void getQuestion(int cin, int cout, int pin, int pout, int questionIndex, curUser user)
 #endif
