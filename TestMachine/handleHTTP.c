@@ -8,13 +8,13 @@
 #include <arpa/inet.h>
 // The handleRequest function processes an HTTP request and sends the appropriate response.
 // It takes a socket file descriptor and an HttpRequest structure.
-void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
+void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user, int cqbpipe[2], int pqbpipe[2]) {
     printf("Inside handlerequest\n");
     char *filePath = NULL;
     ContentType contentType = HTML;
     printf("Username is: %s\n", user.user_filename);
-
-    printf("File path is: %s\n", httpRequest.requestLine.uri.path);
+    // DEBUG: Print the received URI
+    printf("Received URI: %s\n", httpRequest.requestLine.uri.path);
     //char *qIDs[10] = {"a","b","c","d","e","f","g","h","i","k"};
     char *queryCopy = strdup(httpRequest.requestLine.uri.path);
     free(queryCopy); // remember to free the allocated memory
@@ -36,7 +36,7 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
     } else if (strcmp(httpRequest.requestLine.uri.path, "/icon.jpg") == 0) {
         filePath = "./ClientBrowser/icon.jpg";
         contentType = JPEG;
-        sendImageResponse(socket_fd, filePath, contentType);
+        sendImageResponse(socket_fd, filePath, contentType, user.user_filename);
         return; // Return after sending image response
     } else if (strcmp(httpRequest.requestLine.uri.path, "/populateDashboard.js") == 0) {
         filePath = "./ClientBrowser/populateDashboard.js";
@@ -50,26 +50,38 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
     } else if (strcmp(httpRequest.requestLine.uri.path, "/question.js") == 0) {
         filePath = "./ClientBrowser/question.js";
         contentType = JS;
-    } else if (strstr(httpRequest.requestLine.uri.path, "/question=") != NULL) {
-        printf("Inside question grab.\n");
-        char *quest = httpRequest.requestLine.uri.path;
-        printf("Quest is: %s\n", quest);
-        char *end = strstr(httpRequest.requestLine.uri.path, ".html");
-        printf("End is %s\n", end);
-        char questionIndex[4] = {0};
-        quest += 10;
-        printf("Quest now is: %s\n", quest);
-        int counter = 0;
-        while (*quest != *end)
-        {
-            questionIndex[counter] = *quest;
-            quest++;
-            counter++;
+    } else if (strstr(httpRequest.requestLine.uri.path, "/question.html") != NULL) {
+        // Extract the 'id' query parameter from the URI
+        char *quest = strstr(httpRequest.requestLine.uri.queryString, "id=");
+        if (quest != NULL) {
+            quest += strlen("id=");
+            char *end = strchr(quest, '&');  // find the end of the 'id' query parameter
+            if (end == NULL) end = quest + strlen(quest);
+            char questionIndex[4] = {0};
+            strncpy(questionIndex, quest, end - quest);
+            printf("Question index is: %s\n", questionIndex);
+
+            int questionNumber = atoi(questionIndex);
+            if (questionNumber >= 1 && questionNumber <= 100) {
+                // Fetch the question from the question bank
+                get_question(&user, questionNumber, cqbpipe, pqbpipe);
+
+                // Redirect the client to the "question.html" file with the question number as a query parameter
+                char questionHtmlPath[255];
+                //sprintf(questionHtmlPath, "./ClientBrowser/question.html?id=%d", questionNumber);
+                sprintf(questionHtmlPath, "./ClientBrowser/question.html");
+                filePath = questionHtmlPath;
+                contentType = HTML;
+
+                sendHttpResponse(socket_fd, filePath, contentType, user.user_filename);
+            } else {
+                // Invalid question number
+                filePath = "./ClientBrowser/error.html";
+                contentType = HTML;
+            }
         }
-        printf("Question index is: %s\n", questionIndex); // This is a-g plz change
-        
-        // Grab question info using PQ command to questionbank
     }
+
     //printf("No similarities found in handleRequest.\n");
 
     printf("Checking to see if path is true.\n");
@@ -85,14 +97,17 @@ void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user) {
         char temp[1024] = {0};
         sprintf(temp, ".%s", filePath);
         printf("Temp is: %s\n", temp);
-        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
-        printf("user_filename before sending HTTP response: %s\n", filename);
+        // DEBUG: Print filePath and contentType before sending response
+        printf("Sending HTTP Response: filePath=%s, contentType=%d\n", temp, contentType);
+
+        // const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "no filepath";
+        // printf("user_filename before sending HTTP response: %s\n", filename);
         sendHttpResponse(socket_fd, temp, contentType, user.user_filename);
     } else {
         // If filePath is null, send error response
         printf("File path null: %s\n", filePath);
-        const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "error";
-        sendHttpResponse(socket_fd, "./ClientBrowser/error.html", HTML, filename);
+        //const char *filename = user.user_filename[0] != '\0' ? user.user_filename : "error";
+        sendHttpResponse(socket_fd, "./ClientBrowser/login.html", HTML, user.user_filename);
     }
 }
 
@@ -102,46 +117,80 @@ void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentTy
     const char *contentTypeString = getContentTypeString(contentType);
     char header[256];
     printf("session_id %s\n", user_filename);
+
     if (*user_filename != 0)
         sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nSet-Cookie: session_id=%s\nContent-Length: ", contentTypeString, user_filename);
     else if (*user_filename == 0)
         sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\nContent-Length: ", contentTypeString);
-    char *fileText = NULL;
+
     FILE *file = fopen(filePath, "r");
     if (file == NULL) {
         perror("fopen");
         return;
     }
 
-    // Get the length of the file
     fseek(file, 0, SEEK_END);
     int length = ftell(file);
+    if(length == -1){
+        perror("ftell");
+        fclose(file);
+        return;
+    }
     fseek(file, 0, SEEK_SET);
 
-    // Read the file into a buffer
-    fileText = (char*)malloc(length * sizeof(char));
-    fread(fileText, sizeof(char), length, file);
+    char *fileText = (char*)malloc(length * sizeof(char));
+    if(fileText == NULL){
+        perror("malloc");
+        fclose(file);
+        return;
+    }
 
-    // Construct the full HTTP response
+    size_t read_length = fread(fileText, sizeof(char), length, file);
+    if(read_length != length){
+        perror("fread");
+        free(fileText);
+        fclose(file);
+        return;
+    }
+
     int total_length = strlen(header) + strlen(fileText) + (sizeof(char) * 12);
     char *fullhttp = malloc(sizeof(char) * total_length);
-    snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
-    
-    //printf("FULLHTTP IS: %s\n", fullhttp);
-    // Send the HTTP response
-    write(socket_fd, fullhttp, strlen(fullhttp));
+    if(fullhttp == NULL){
+        perror("malloc");
+        free(fileText);
+        fclose(file);
+        return;
+    }
 
-    // Clean up
+    int snprintf_length = snprintf(fullhttp, total_length, "%s%d\n\n%s", header, length, fileText);
+    if(snprintf_length < 0 || snprintf_length >= total_length){
+        perror("snprintf");
+        free(fileText);
+        free(fullhttp);
+        fclose(file);
+        return;
+    }
+
+    ssize_t write_length = write(socket_fd, fullhttp, strlen(fullhttp));
+    if(write_length != strlen(fullhttp)){
+        perror("write");
+    }
+
     fclose(file);
     free(fileText);
     free(fullhttp);
 }
 
+
 // Same as sendHttpResponse, but for images
-void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType) {
+void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType, const char *user_filename) {
     const char *contentTypeString = getContentTypeString(contentType);
-    char header[128];
-    sprintf(header, "HTTP/1.1 200 OK\nContent-Type: %s\n\n", contentTypeString);
+    char header[256];
+
+    if (*user_filename != 0)
+        sprintf(header, "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nSet-Cookie: session_id=%s\r\n", contentTypeString, user_filename);
+    else if (*user_filename == 0)
+        sprintf(header, "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n", contentTypeString);
 
     FILE *file = fopen(filePath, "rb");
     if (file == NULL) {
@@ -149,38 +198,52 @@ void sendImageResponse(int socket_fd, const char *filePath, ContentType contentT
         return;
     }
 
-    // Get the length of the file
     fseek(file, 0, SEEK_END);
     long length = ftell(file);
+    if (length == -1) {
+        perror("ftell");
+        fclose(file);
+        return;
+    }
     fseek(file, 0, SEEK_SET);
 
-    // Allocate a buffer for the image data
+    char contentLengthHeader[64];
+    sprintf(contentLengthHeader, "Content-Length: %ld\r\n", length);
+
+    ssize_t write_length = write(socket_fd, header, strlen(header));
+    if (write_length != strlen(header)) {
+        perror("write");
+        fclose(file);
+        return;
+    }
+
+    ssize_t write_length2 = write(socket_fd, contentLengthHeader, strlen(contentLengthHeader));
+    if (write_length2 != strlen(contentLengthHeader)) {
+        perror("write");
+        fclose(file);
+        return;
+    }
+
     unsigned char *imageData = (unsigned char*)malloc(length * sizeof(unsigned char));
     if (imageData == NULL) {
-        fclose(file);
         perror("malloc");
+        fclose(file);
         return;
     }
 
-    // Read the image data into the buffer
     size_t bytesRead = fread(imageData, sizeof(unsigned char), length, file);
     if (bytesRead != length) {
-        fclose(file);
-        free(imageData);
         perror("fread");
+        free(imageData);
+        fclose(file);
         return;
     }
 
-    // Send the HTTP response header
-    write(socket_fd, header, strlen(header));
-
-    // Send the image data as the response body
-    size_t bytesSent = send(socket_fd, imageData, length, 0);
+    ssize_t bytesSent = send(socket_fd, imageData, length, 0);
     if (bytesSent != length) {
         perror("send");
     }
 
-    // Clean up
     fclose(file);
     free(imageData);
 }

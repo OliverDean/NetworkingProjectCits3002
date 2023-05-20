@@ -47,6 +47,7 @@ window.onload = function() {
         xhr.open('GET', fileName, true);
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4 && xhr.status == 200) {
+                console.log('File data received:', xhr.responseText);
                 var questions = parseQuestions(xhr.responseText); // Store the returned questions
                 displayQuestions(questions); // Call a new function that will handle displaying the questions
             }
@@ -113,14 +114,19 @@ function getAttemptCount(attempts) {
 }
 
 function parseQuestions(fileData) {
-    var elements = fileData.split(';');
+    //var normalizedData = fileData.replace(/\r\nq/g, 'q');
+    var normalizedData = fileData.replace(/^\n+/g, '');
+    
+
+    var elements = normalizedData.split(';');
     var questions = [];
     var userName = elements.shift(); // Get the user's name from the first element
 
     // Each question is defined by four elements
     while (elements.length >= 4) {
         var questionData = elements.splice(0, 4); // Get the next four elements
-        if (questionData[0] === 'q') {
+        console.log('Current questionData:', questionData);
+        if (questionData[0] === '\nq' || questionData[0] === 'q') {
             var status = getStatus(questionData[3]);
             var attemptCount = getAttemptCount(questionData[3]);
             questions.push({
@@ -130,10 +136,15 @@ function parseQuestions(fileData) {
                 status: status,
                 attempt: attemptCount
             });
+        } else {
+            console.warn('QuestionData does not start with "q":', questionData);
         }
     }
+    console.log('Parsed questions:', questions);
     return questions;
 }
+
+
 
 function displayQuestions(questions) { // New function to handle displaying the questions
     var questionGrid = document.querySelector('.question-grid');
@@ -143,7 +154,8 @@ function displayQuestions(questions) { // New function to handle displaying the 
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question_${item.id}.html`;
+        // Note: Now we have a template literal with variable "item.id"
+        questionLink.href = `question.html?id=${item.id}`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';

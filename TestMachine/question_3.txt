@@ -1,8 +1,0 @@
-8
-mcq
-Which keyword is used for function in Python language?
-A. Function
-B. def
-C. Fun
-D. Define
-B

@@ -6,22 +6,56 @@
 // filedata="Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;"
 
 window.onload = function() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'user_cookie_file.txt', true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState == 4 && xhr.status == 200)
-            var questions = parseQuestions(xhr.responseText); // Store the returned questions
-            displayQuestions(questions); // Call a new function that will handle displaying the questions
+    // Extract the session id from the cookies
+    var cookies = document.cookie.split(';');
+    var sessionId = '';
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.startsWith('session_id=')) {
+            sessionId = cookie.substring('session_id='.length, cookie.length);
+            break;
+        }
     }
-    xhr.send(null);
+
+    // If the session id wasn't found in the cookies, make the request to get it
+    if (sessionId === '') {
+        console.log('Session id not found in the cookies. Making a request to get it.');
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/session', true); // replace '/session' with the URL you get the session id from
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                sessionId = xhr.getResponseHeader('X-Session-ID'); // replace 'X-Session-ID' with the name of the header field the server is using to return the session id
+                
+                if (sessionId === null) {
+                    console.error('Session id not found in the response headers');
+                } else {
+                    console.log('Session id found in the response headers:', sessionId);
+                    // Proceed to use sessionId
+                    // For example, build the file name
+                    var fileName = '../' + sessionId;
+                }
+            }
+        }
+        xhr.send(null);
+    } else {
+        console.log('Session id found in the cookies:', sessionId);
+        // Use the session id to build the file name
+        var fileName = '../' + sessionId;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', fileName, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                console.log('File data received:', xhr.responseText);
+                var questions = parseQuestions(xhr.responseText); // Store the returned questions
+                displayQuestions(questions); // Call a new function that will handle displaying the questions
+            }
+        }
+        xhr.send(null);
+    }
 }
 
-
-window.onload = function() {
-    var filedata = "Joel;q;python;a;NY-;q;c;a;---;q;c;c;Y--;q;c;d;NNN;q;python;d;NNY;q;python;f;---;q;c;h;NNN;q;python;e;Y--;q;c;o;NY-;q;c;l;NNY;";
-    var questions = parseQuestions(filedata); // Parse the filedata string
-    displayQuestions(questions); // Display the parsed questions
-}
 
 
 function getStatus(attempts) {
@@ -41,14 +75,19 @@ function getAttemptCount(attempts) {
 }
 
 function parseQuestions(fileData) {
-    var elements = fileData.split(';');
+    //var normalizedData = fileData.replace(/\r\nq/g, 'q');
+    var normalizedData = fileData.replace(/^\n+/g, '');
+    
+
+    var elements = normalizedData.split(';');
     var questions = [];
     var userName = elements.shift(); // Get the user's name from the first element
 
     // Each question is defined by four elements
     while (elements.length >= 4) {
         var questionData = elements.splice(0, 4); // Get the next four elements
-        if (questionData[0] === 'q') {
+        console.log('Current questionData:', questionData);
+        if (questionData[0] === '\nq' || questionData[0] === 'q') {
             var status = getStatus(questionData[3]);
             var attemptCount = getAttemptCount(questionData[3]);
             questions.push({
@@ -58,10 +97,15 @@ function parseQuestions(fileData) {
                 status: status,
                 attempt: attemptCount
             });
+        } else {
+            console.warn('QuestionData does not start with "q":', questionData);
         }
     }
+    console.log('Parsed questions:', questions);
     return questions;
 }
+
+
 
 function displayQuestions(questions) { // New function to handle displaying the questions
     var questionGrid = document.querySelector('.question-grid');
@@ -71,7 +115,8 @@ function displayQuestions(questions) { // New function to handle displaying the 
 
         var questionLink = document.createElement('a');
         questionLink.className = `question-link ${item.status}`;
-        questionLink.href = `question=${item.id}.html`;
+        // Note: Now we have a template literal with variable "item.id"
+        questionLink.href = `question.html?id=${item.id}`;
 
         var questionNumber = document.createElement('div');
         questionNumber.className = 'question-number';

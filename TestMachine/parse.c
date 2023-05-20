@@ -35,6 +35,8 @@ HttpRequest parseHttpRequest(const char *request) {
     strcpy(copy, request); // Make a copy because strtok modifies the string
 
     char *line = strtok(copy, "\n");
+    // DEBUG: Print the request string
+    printf("Request string: %s\n", request);
 
     // Parse request line
     char uriString[500];
@@ -58,6 +60,12 @@ HttpRequest parseHttpRequest(const char *request) {
             httpRequest.headerCount++;
         }
     }
+    // DEBUG: Print some parts of the HttpRequest after parsing
+    printf("Parsed HttpRequest: method=%s, uri=%s, version=%s\n",
+    httpRequest.requestLine.method,
+    httpRequest.requestLine.uri.path,
+    httpRequest.requestLine.version);
+
 
     return httpRequest;
 }

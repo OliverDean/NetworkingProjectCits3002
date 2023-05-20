@@ -51,15 +51,17 @@ typedef enum {
 } ContentType;
 
 extern void QuestionBanks(int QBsocket, int pipe[2], char *QBversion);
-extern void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user);
+extern void handleRequest(int socket_fd, HttpRequest httpRequest, curUser user,int cqbpipe[2], int pqbpipe[2]);
 extern int loadUser(curUser *user);
 extern int login(char username[], char password[], curUser *user);
 extern void generatenewfile(curUser *user);
 extern char *randomStringGenerator();
-extern void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType);
+extern void sendImageResponse(int socket_fd, const char *filePath, ContentType contentType, const char *user_filename);
 extern void sendHttpResponse(int socket_fd, const char *filePath, ContentType contentType, const char *user_filename);
 extern Uri parseUri(const char *uriString);
 extern HttpRequest parseHttpRequest(const char *request);
 const char* getContentTypeString(ContentType contentType);
-extern void getQuestion(int cin, int cout, int pin, int pout, int questionIndex, curUser user)
+extern void getQuestion(int cin, int cout, int pin, int pout, int questionIndex, curUser user);
+extern void get_question(curUser *user, int question_index, int cqbpipe[2], int pyqbpipe[2]);
+extern int handleGETRequest(char *filepath, int newtm_fd, int cqbpipe[2], int pqbpipe[2]);
 #endif

@@ -21,8 +21,6 @@
 
 curUser user;
 
-int cqbpipe[2], pqbpipe[2];
-
 // Generates random string for user cookie file
 // Returns said string
 char *randomStringGenerator()
@@ -117,36 +115,9 @@ void sendRedirectResponse(int socket_fd, const char *location, const char *user_
     char header[256];
     sprintf(header, "HTTP/1.1 302 Found\r\nLocation: %s\r\nSet-Cookie: session_id=%s\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n", location, user_filename);
     printf("Redirecting to: %s\n", location);
-    printf("t\t\tsession_id %s\n", user_filename);
+    printf("\t\tsession_id %s\n", user_filename);
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
-}
-
-// Tries to log in with a given username and password.
-int attempt_login(int newtm_fd, char *username, char *password) {
-    curUser user;
-    printf("Attempting login...\n");
-    int login_result = login(username, password, &user);
-    if (login_result == 0) {
-        printf("Login succeeded.\n");
-        
-        // Copy the user_filename into a temporary variable
-        char temp_filename[9];
-        strncpy(temp_filename, user.user_filename, 13);
-        
-        // Redirect to the question dashboard
-        printf("t\t\tsession_id %s\n", temp_filename);
-        
-        if (!temp_filename[0] == '\0') {
-            // Pass the temp_filename to the sendRedirectResponse function
-            sendRedirectResponse(newtm_fd, "/question_dashboard", temp_filename);
-        }
-        
-        return 2;
-    } else {
-        printf("Login failed with error code: %d\n", login_result);
-        return login_result;
-    }
 }
 
 void displaylogin(int newtm_fd, curUser user) {
@@ -191,29 +162,36 @@ void displaylogin(int newtm_fd, curUser user) {
 
     // Only attempt login if both username and password are present in the query string
     if (hasUsername && hasPassword) {
-        curUser user;
         printf("Attempting login...\n");
         int login_result = login(username, password, &user);
         if (login_result == 0) {
-            //user.user_filename = filename;
+            printf("Login succeeded.\n");
+            
+            // Copy the user_filename into a temporary variable
+            char temp_filename[9];
+            strncpy(temp_filename, user.user_filename, 13);
             
             // Redirect to the question dashboard
-            // HttpRequest httpRequest;
-            // strcpy(httpRequest.requestLine.uri.path, "/question_dashboard");
-            // handleRequest(newtm_fd, httpRequest);
-            sendRedirectResponse(newtm_fd, "/question_dashboard", user.user_filename);
-
+            printf("\t\tsession_id %s\n", temp_filename);
+            
+            if (!temp_filename[0] == '\0') {
+                // Pass the temp_filename to the sendRedirectResponse function
+                sendRedirectResponse(newtm_fd, "/question_dashboard", temp_filename);
+            }
         } else {
             printf("Login failed with error code: %d\n", login_result);
         }
     }
+    int dummyCQBPipe[2] = {0};
+    int dummyPYQBPipe[2] = {0};
 
     // Send the login page as the HTTP response
-    handleRequest(newtm_fd, httpRequest, user);
+    handleRequest(newtm_fd, httpRequest, user, dummyCQBPipe, dummyPYQBPipe);
 }
 
 void get_question(curUser *user, int question_index, int cqbpipe[2], int pyqbpipe[2])
 {
+    printf("Inside get_question\n");
     int pipe[2] = {0};
     char *type = NULL;
     char *question = NULL;
@@ -221,7 +199,7 @@ void get_question(curUser *user, int question_index, int cqbpipe[2], int pyqbpip
     int typesize = 0;
     int questionsize = 0;
     int optionsize = 0;
-    if (strcasecmp(user->QB[question_index], "c")) {
+    if (strcasecmp(user->QB[question_index], "c") == 0) {
         pipe[1] = cqbpipe[1];
         pipe[0] = cqbpipe[0];
     }
@@ -269,8 +247,32 @@ void get_question(curUser *user, int question_index, int cqbpipe[2], int pyqbpip
     {
         perror("read");
     }
-    printf("Question: %s\nOption: %s\nType%s\n", question, option, type);
-}   
+    printf("Question: %s\nOption: %s\nType: %s\n", question, option, type);
+    printf("inside just about to write\n");
+    // Get the current working directory
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        perror("getcwd");
+        exit(EXIT_FAILURE);
+    }
+
+    // Create the file path with the current working directory and the file name
+    char fileName[2048];
+    sprintf(fileName, "%s/question_%d.txt", cwd, question_index);
+    FILE *file = fopen(fileName, "w");
+    if (file == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file, "Question: %s\nOption: %s\nType: %s\n", question, option, type);
+    fclose(file);
+
+    // Clean up
+    free(question);
+    free(option);
+    free(type);
+}    
 
 
 // Function to send a question request
@@ -373,46 +375,7 @@ char* loginPage()
     return fullhttp;
 }
 
-void getQuestion(int cin, int cout, int pin, int pout, int questionIndex, curUser user) {
-    int index = questionIndex--;
-    if (!strcasecmp(user.QB[index], "c"))
-    {
-        printf("Sending PQ to c\n");
-        if (write(cout, "PQ", 3) == -1)
-        {
-            perror("write");
-        }
-        if (write(cout, &index, sizeof(int)) == -1) // Sending question index
-        {
-            perror("write");
-        }
-        if (write(cout, user.QuestionID[index], 4) == -1) // Sending questionID
-        {
-            perror("write");
-        }
-        printf("Grabbing question");
-    }
-    else if(!strcasecmp(user.QB[index], "python"))
-    {
-        printf("Sending PQ to p\n");
-        if (write(pout, "PQ", 3) == -1)
-        {
-            perror("write");
-        }
-        if (write(pout, &index, sizeof(int)) == -1) // Question 2 is index 3
-        {
-            perror("write");
-        }
-        printf("Question ID is: %s\n", user.QuestionID[index]);
-        if (write(pout, user.QuestionID[index], 4) == -1) // Question 2 is index 3
-        {
-            perror("write");
-        }
-        printf("Grabbing question");
-    }
-}
-
-int handleGETRequest(char *filepath, int newtm_fd)
+int handleGETRequest(char *filepath, int newtm_fd, int cqbpipe[2], int pqbpipe[2])
 {
     if(strstr(filepath, "username") != NULL)
     {
@@ -471,11 +434,27 @@ int handleGETRequest(char *filepath, int newtm_fd)
         printf("Getting login page!\n");
         sendHttpResponse(newtm_fd, "./ClientBrowser/login.html", contenttype, user.user_filename);
     }
-    else if (strstr(filepath, "question")) // This is a question
+        else if (strstr(filepath, "/question") != NULL) 
     {
-        char *questionIndex = strstr(filepath, "question");
-        questionIndex += 10;
-        printf("Question index is: %s\n", questionIndex);
+        char *start = strstr(filepath, "_");
+        char *end = strstr(filepath, ".html");
+        char questionIndex[4] = {0};
+
+        start += 1;  // Skip past the underscore
+        strncpy(questionIndex, start, end - start);
+        int questionNumber = atoi(questionIndex);
+
+        // Now you have the question number, you can pass this to your question loading function
+        get_question(&user, questionNumber, cqbpipe, pqbpipe);
+
+        // After the question is loaded and the page is generated, send an HTTP response to the client
+        ContentType contenttype = HTML;
+
+        // Assuming the question html file is generated with the format "question_[questionNumber].html"
+        char questionFilePath[50];
+        sprintf(questionFilePath, "./ClientBrowser/question_%s.html", questionIndex);
+        
+        sendHttpResponse(newtm_fd, questionFilePath, contenttype, user.user_filename);
     }
     return 1;
 }
@@ -490,6 +469,7 @@ int main(int argc, char *argv[])
     struct addrinfo cqb_addr, pqb_addr, tm_addr;
     int cqb_fd, pqb_fd, tm_fd;
     int newc_fd, newp_fd, newtm_fd;
+    int cqbpipe[2], pqbpipe[2];
 
     if (pipe(cqbpipe) == -1)
     {
@@ -595,26 +575,22 @@ int main(int argc, char *argv[])
             //displaylogin(newtm_fd, user);
             int revalue = 0;
             char getBuffer[4128] = {0};
+            
             if (recv(newtm_fd, getBuffer, 4128, 0) == -1)
             {
                 perror("recv");
             }
-            printf("Get buffer is: %s\n", getBuffer);
-            char *cookie = strstr(getBuffer, "session_id");
-            cookie += 11;
-            if (*cookie != 0) {
-                loadUser(&user);
-            }
+            printf("Received data from client: %s\n", getBuffer);
             HttpRequest htpr = parseHttpRequest(getBuffer);
             printf("Request mode is: %s\n", htpr.requestLine.method);
             printf("\n\nfile path is: %s\n", htpr.requestLine.uri.path);
             printf("\n\nrequest path is: %s\n", htpr.requestLine.uri.queryString);
             if (strstr(htpr.requestLine.uri.queryString, "username") == NULL)
-                handleRequest(newtm_fd, htpr, user);
+                handleRequest(newtm_fd, htpr, user, cqbpipe, pqbpipe);
             if (!strcmp(htpr.requestLine.method, "GET")) // GET Request
             {
                 printf("Accepted GET Request!\n");
-                revalue = handleGETRequest(htpr.requestLine.uri.queryString, newtm_fd);
+                revalue = handleGETRequest(htpr.requestLine.uri.queryString, newtm_fd, cqbpipe, pqbpipe);
             }
             if (revalue == -1) // Cookie file broken
             {

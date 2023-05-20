@@ -5,10 +5,14 @@ var nextButton = document.querySelector(".next-question");
 var prevButton = document.querySelector(".prev-question");
 document.cookie = "session_id=1yp5y1mq";
 
+const urlParams = new URLSearchParams(window.location.search);
+const questionId = urlParams.get('id');
+
+// Now you can use the "questionId" variable to load the right question data
 
 
 nextButton.addEventListener("click", function () {
-  fetch(`http:/ClientBrowser/question_${id + 1}.html`, {
+  fetch(`http:/ClientBrowser/question_${parseInt(questionId) + 1}.html`, {
     method: "GET",
   })
     .then((response) => response.text())
@@ -22,7 +26,7 @@ nextButton.addEventListener("click", function () {
 });
 
 prevButton.addEventListener("click", function () {
-  fetch(`http:/ClientBrowser/question_${id - 1}.html`, {
+  fetch(`http:/ClientBrowser/question_${parseInt(questionId) - 1}.html`, {
     method: "GET",
   })
     .then((response) => response.text())
@@ -34,6 +38,7 @@ prevButton.addEventListener("click", function () {
       console.error("Error:", error);
     });
 });
+
 
 window.onload = function () {
   // Extract the session id from the cookies
@@ -50,6 +55,17 @@ window.onload = function () {
     console.error("Session id not found in the cookies");
     return;
   }
+  // Extract the question ID from the URL
+  var urlParams = new URLSearchParams(window.location.search);
+  var questionId = urlParams.get('id');
+
+  if (questionId === null) {
+    console.error("Question ID not found in the URL");
+    return;
+  }
+
+  // Use the question ID to load the corresponding question
+  loadQuestion(questionId, "mcq");
 
   // Use the session id to build the file name
   var fileName = "../" + sessionId + ".txt";
@@ -223,32 +239,32 @@ function displayCodingQuestion(questionData) {
   };
 }
 
-function testDisplayQuestion() {
-  var userCookieFile = `Joel;
-  q;python;17;---;
-  q;python;13;---;
-  q;python;5;---;
-  q;python;3;---;
-  q;python;10;---;
-  q;python;11;---;
-  q;c;12;---;
-  q;c;1;---;
-  q;c;14;---;
-  q;c;7;---;`;
+// function testDisplayQuestion() {
+//   var userCookieFile = `Joel;
+//   q;python;17;---;
+//   q;python;13;---;
+//   q;python;5;---;
+//   q;python;3;---;
+//   q;python;10;---;
+//   q;python;11;---;
+//   q;c;12;---;
+//   q;c;1;---;
+//   q;c;14;---;
+//   q;c;7;---;`;
 
-  // Parse the questions from the userCookieFile
-  var questions = parseQuestions(userCookieFile);
+//   // Parse the questions from the userCookieFile
+//   var questions = parseQuestions(userCookieFile);
 
-  // Find question 3
-  var question3 = questions.find(question => question.id === "3");
+//   // Find question 3
+//   var question3 = questions.find(question => question.id === "3");
 
-  if (question3) {
-    // Load and display question 3
-    loadQuestion(question3.id, question3.type);
-  } else {
-    console.error("Question 3 not found");
-  }
-}
+//   if (question3) {
+//     // Load and display question 3
+//     loadQuestion(question3.id, question3.type);
+//   } else {
+//     console.error("Question 3 not found");
+//   }
+// }
 
-// Run the test function
-testDisplayQuestion();
+// // Run the test function
+// testDisplayQuestion();
