@@ -39,3 +39,4 @@ So for the coding questions, that one function should be compiling the user's an
 
 In regards to "Cause there's gonna need to be a way to define what language the person is typing in" --> we can, in the question description, say: "Write a Python function named __my_function__ that adds two numbers together". Therefore we are only accepting Python answers. I don't think we need to have checks making sure they are writing in the specified language.
 
+written by oliver

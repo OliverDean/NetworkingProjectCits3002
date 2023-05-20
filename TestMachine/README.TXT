@@ -1,0 +1,1 @@
+run make from the directory this README is in. then ./TM to run the test machine. please use a standalone linux terminal.

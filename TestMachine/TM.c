@@ -119,7 +119,7 @@ void sendRedirectResponse(int socket_fd, const char *location, const char *user_
     // Send the HTTP response
     write(socket_fd, header, strlen(header));
 }
-
+//  Function reads the HTTP request from the client, extracts the username and password from the query string, and attempts to perform a login using the login() function. 
 void displaylogin(int newtm_fd, curUser user) {
     char buffer[3000];
     read(newtm_fd, buffer, 3000);
@@ -189,6 +189,8 @@ void displaylogin(int newtm_fd, curUser user) {
     handleRequest(newtm_fd, httpRequest, user, dummyCQBPipe, dummyPYQBPipe);
 }
 
+
+// Function retrieves a question from the question bank by sending a request through a pipe, receiving the question data, and saving it to a file.
 void get_question(curUser *user, int question_index, int cqbpipe[2], int pyqbpipe[2])
 {
     printf("Inside get_question\n");
@@ -303,10 +305,6 @@ void send_question_request(curUser* user, int question_index, int cqbpipe[2], in
     printf("Request sent for question ID: %s\n", user->QuestionID[question_index]);
 }
 
-
-//send_question_request(&user, question_index, cqbpipe, pyqbpipe);
-
-
 // Function to send an answer request
 void send_answer_request(curUser* user, int question_index, char* answer, int QBsocket) {
     char code[3]; 
@@ -350,6 +348,8 @@ void send_answer_request(curUser* user, int question_index, char* answer, int QB
         printf("Answer is wrong\n");
 }
 
+// Function reads the contents of the "login.html" file and constructs an HTTP response with the appropriate headers and content. 
+// It returns the dynamically allocated string containing the complete HTTP response.
 char* loginPage()
 {
     printf("Within login page.\n");
@@ -375,6 +375,9 @@ char* loginPage()
     return fullhttp;
 }
 
+
+// The handleGETRequest() function handles a GET request by extracting information from the filepath,
+// performing user login/authentication, loading question data, and sending the appropriate HTTP response based on the request type.
 int handleGETRequest(char *filepath, int newtm_fd, int cqbpipe[2], int pqbpipe[2])
 {
     if(strstr(filepath, "username") != NULL)
